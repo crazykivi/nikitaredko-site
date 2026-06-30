@@ -4,8 +4,8 @@ import (
 	"flag"
 	"log"
 	"os"
+	"strings"
 
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 
@@ -27,13 +27,16 @@ func main() {
 
 	r := gin.Default()
 
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:3000"},
-		AllowMethods:     []string{"GET", "POST", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
-	}))
+	corsOrigins := []string{"http://localhost:5173", "http://localhost:3000"}
+	if envOrigins := os.Getenv("ALLOW_CORS"); envOrigins != "" {
+		corsOrigins = []string{}
+		for _, origin := range strings.Split(envOrigins, ",") {
+			trimmed := strings.TrimSpace(origin)
+			if trimmed != "" {
+				corsOrigins = append(corsOrigins, trimmed)
+			}
+		}
+	}
 
 	cacheManager := cache.New()
 	articleHandler := handlers.NewArticleHandler(cacheManager)
