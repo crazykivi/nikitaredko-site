@@ -245,7 +245,7 @@ func (h *ArticleHandler) buildArticleTree(docs []OutlineDocument, collectionsMap
 		}
 	}
 
-	var rootArticles []Article
+	rootArticles := make([]Article, 0)
 	for _, doc := range docs {
 		if doc.ArchivedAt != nil || h.isDraft(doc) {
 			continue
