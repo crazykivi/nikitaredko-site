@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"os"
 
@@ -11,6 +12,8 @@ import (
 	"nikitaredko-backend/cache"
 	"nikitaredko-backend/handlers"
 )
+
+var serveStatic = flag.Bool("s", false, "Serve static files from ./dist")
 
 func main() {
 	if err := godotenv.Load(); err != nil {
@@ -45,6 +48,22 @@ func main() {
 		// CACHE
 		api.POST("/webhook/outline", cacheManager.WebhookHandler)
 		api.GET("/cache/health", cacheManager.HealthCheck)
+	}
+
+	if *serveStatic {
+		if _, err := os.Stat("./dist"); err == nil {
+			r.Static("/assets", "./dist/assets")
+			r.StaticFile("/favicon.svg", "./dist/favicon.svg")
+
+			r.NoRoute(func(c *gin.Context) {
+				c.File("./dist/index.html")
+			})
+			log.Println("[Static] Serving frontend from ./dist")
+		} else {
+			log.Println("[Static] No ./dist folder found, API-only mode")
+		}
+	} else {
+		log.Println("[Static] Static serving disabled via SERVE_STATIC=false")
 	}
 
 	log.Printf("Server starting on port %s", port)
