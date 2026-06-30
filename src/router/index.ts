@@ -4,7 +4,7 @@ import ArticlesLayout from '../views/ArticlesLayout.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  scrollBehavior(to, from, savedPosition) {
+  scrollBehavior(_to, _from, savedPosition) {
     if (savedPosition) {
       return savedPosition
     }
@@ -35,7 +35,7 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to, from) => {
+router.beforeEach((_to, from) => {
   if (from.name === 'articles') {
     sessionStorage.setItem('scroll_articles', window.scrollY.toString())
   }

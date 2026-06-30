@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted } from 'vue'
 
 const phrases = [
   'о коде и багах',
@@ -61,33 +61,33 @@ onMounted(() => {
           <span class="animate-pulse">|</span>
         </h1>
       </div>
-
+      
       <p class="text-lg md:text-xl text-muted leading-relaxed max-w-2xl mx-auto animate-fade-in-delayed">
-        Здесь я делюсь опытом разработки, рассказываю о своих проектах, 
-        размышляю о жизни и просто записываю мысли, чтобы не забыть. 
+        Здесь я делюсь опытом разработки, рассказываю о своих проектах,
+        размышляю о жизни и просто записываю мысли, чтобы не забыть.
         Иногда получается полезно, иногда — просто интересно.
       </p>
-
+      
       <div class="flex gap-4 justify-center pt-4 animate-fade-in-delayed-3">
-        <router-link 
-          to="/articles" 
+        <router-link
+          to="/articles"
           class="group px-8 py-4 bg-foreground text-background rounded-lg font-medium hover:opacity-90 transition-all hover:scale-105 flex items-center gap-2"
         >
           Читать статьи
-          <svg 
-            class="w-4 h-4 transition-transform group-hover:translate-x-1" 
-            fill="none" 
-            stroke="currentColor" 
+          <svg
+            class="w-4 h-4 transition-transform group-hover:translate-x-1"
+            fill="none"
+            stroke="currentColor"
             viewBox="0 0 24 24"
           >
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
           </svg>
         </router-link>
       </div>
-
+      
       <div class="pt-8 text-xs text-muted/40 max-w-md mx-auto animate-fade-in-delayed-3">
         <p class="leading-relaxed">
-          Всё написанное здесь — мои личные мысли, опыт и правки от ИИ. 
+          Всё написанное здесь — мои личные мысли, опыт и правки от ИИ.
           Не принимайте всё за истину — всегда проверяйте информацию самостоятельно.
         </p>
       </div>
