@@ -1,0 +1,11 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nikitaredko-site
+    ports:
+      - "8080:8080"
+    env_file:
+      - /etc/nikitaredko-site/.env
+    restart: unless-stopped
