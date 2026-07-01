@@ -63,3 +63,8 @@ export async function getArticlesStructured(signal?: AbortSignal): Promise<Colle
 export async function getArticle(id: string, signal?: AbortSignal): Promise<Article> {
   return request<Article>(`/articles/${id}`, signal)
 }
+
+export async function searchArticles(query: string, signal?: AbortSignal): Promise<Article[]> {
+    if (!query.trim()) return []
+    return request<Article[]>(`/articles/search?q=${encodeURIComponent(query)}`, signal)
+}

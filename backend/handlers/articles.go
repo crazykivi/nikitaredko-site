@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -515,4 +516,88 @@ func (h *ArticleHandler) GetArticle(c *gin.Context) {
 
 	h.cache.Set(cacheKey, article)
 	c.JSON(http.StatusOK, article)
+}
+
+func (h *ArticleHandler) SearchArticles(c *gin.Context) {
+	query := c.Query("q")
+	if query == "" {
+		c.JSON(http.StatusOK, []Article{})
+		return
+	}
+
+	cacheKey := "search_" + query
+	if cached, found := h.cache.Get(cacheKey); found {
+		log.Printf("[Cache] HIT: %s", cacheKey)
+		c.JSON(http.StatusOK, cached)
+		return
+	}
+
+	log.Printf("[Cache] MISS: %s", cacheKey)
+
+	collectionsMap, err := h.fetchCollectionsMap()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch collections"})
+		return
+	}
+
+	docs, err := h.fetchAllDocs()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch articles"})
+		return
+	}
+
+	queryLower := strings.ToLower(query)
+	var results []Article
+
+	for _, doc := range docs {
+		if doc.ArchivedAt != nil || h.isDraft(doc) {
+			continue
+		}
+
+		coll, ok := collectionsMap[doc.CollectionID]
+		if !ok || !h.isCollectionAllowedByName(coll.Name) {
+			continue
+		}
+
+		titleMatch := strings.Contains(strings.ToLower(doc.Title), queryLower)
+		contentMatch := strings.Contains(strings.ToLower(doc.Text), queryLower) ||
+			strings.Contains(strings.ToLower(doc.Content), queryLower)
+
+		if titleMatch || contentMatch {
+			article := h.mapToArticle(doc, coll.Name, 0)
+			if titleMatch {
+				article.Tags = append(article.Tags, "title-match")
+			}
+			results = append(results, article)
+		}
+	}
+
+	sort.Slice(results, func(i, j int) bool {
+		iTitleMatch := false
+		jTitleMatch := false
+		for _, tag := range results[i].Tags {
+			if tag == "title-match" {
+				iTitleMatch = true
+				break
+			}
+		}
+		for _, tag := range results[j].Tags {
+			if tag == "title-match" {
+				jTitleMatch = true
+				break
+			}
+		}
+
+		if iTitleMatch && !jTitleMatch {
+			return true
+		}
+		if !iTitleMatch && jTitleMatch {
+			return false
+		}
+
+		return results[i].PublishedAt > results[j].PublishedAt
+	})
+
+	h.cache.Set(cacheKey, results)
+	c.JSON(http.StatusOK, results)
 }
