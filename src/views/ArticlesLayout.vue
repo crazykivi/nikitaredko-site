@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getArticlesStructured, searchArticles, cleanCollectionName } from '../services/api'
 import type { CollectionWithArticles, Article } from '../services/api'
@@ -366,11 +366,11 @@ onUnmounted(() => {
                         :key="article.id"
                         :to="`/articles/${article.id}`"
                         class="block px-2 py-1 text-xs transition-colors truncate rounded"
-                        :class="isSearchActive.value ? 'text-foreground hover:bg-muted/50' : 'text-muted hover:text-foreground'"
+                        :class="isSearchActive ? 'text-foreground hover:bg-muted/50' : 'text-muted hover:text-foreground'"
                         :title="article.title"
                     >
                         {{ article.title }}
-                        <span v-if="isSearchActive.value && article.tags.includes('title-match')" class="text-[9px] ml-1 text-muted">
+                        <span v-if="isSearchActive && article.tags.includes('title-match')" class="text-[9px] ml-1 text-muted">
                             (заголовок)
                         </span>
                     </router-link>
