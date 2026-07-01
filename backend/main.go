@@ -54,6 +54,13 @@ func main() {
 		api.GET("/cache/health", cacheManager.HealthCheck)
 	}
 
+	shouldServeStatic := *serveStatic
+	if !shouldServeStatic {
+		if envVal := os.Getenv("SERVE_STATIC"); envVal == "true" {
+			shouldServeStatic = true
+		}
+	}
+
 	if *serveStatic {
 		if _, err := os.Stat("./dist"); err == nil {
 			r.Static("/assets", "./dist/assets")
