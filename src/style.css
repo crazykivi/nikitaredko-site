@@ -17,7 +17,14 @@
     --muted: #a1a1aa;
     --border: #27272a;
   }
-  
+ 
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    overflow-y: scroll;
+  }
+
   body {
     @apply bg-background text-foreground font-sans antialiased transition-colors duration-300;
   }
