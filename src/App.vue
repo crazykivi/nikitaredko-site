@@ -7,7 +7,7 @@ import LoadingBar from './components/LoadingBar.vue'
   <div class="min-h-screen bg-background text-foreground">
     <LoadingBar />
     <AppHeader />
-    <main>
+    <main class="pt-16">
       <router-view v-slot="{ Component }">
         <transition name="fade">
           <component :is="Component" />
