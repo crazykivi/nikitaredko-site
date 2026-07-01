@@ -4,7 +4,7 @@ import { ref, onMounted } from 'vue'
 const phrases = [
   'о коде и багах',
   'о жизни и кофе',
-  'о проектах и идеях',
+  'о проектах',
   'о мыслях вслух',
   'о всём подряд'
 ]
@@ -47,13 +47,13 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center px-4">
-    <div class="text-center space-y-8 max-w-3xl">
-      <div class="space-y-4">
+  <div class="min-h-[calc(100vh-5rem)] flex items-center justify-center px-4">
+    <div class="text-center space-y-8 max-w-4xl">
+      <div class="space-y-4 min-h-[8.3rem] md:min-h-[9rem]">
         <p class="text-sm font-mono text-muted uppercase tracking-widest animate-fade-in">
           Привет, я Никита
         </p>
-        <h1 class="text-5xl md:text-7xl font-bold tracking-tight">
+        <h1 class="text-5xl md:text-7xl min-w-0 md:min-w-[800px] font-bold tracking-tight">
           Пишу
           <span class="text-foreground/60">
             {{ displayedText }}
