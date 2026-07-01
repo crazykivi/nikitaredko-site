@@ -71,11 +71,10 @@ jobs:
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
             cd /opt/nikitaredko
+            cp /etc/nikitaredko-site/.env.test .env
             export IMAGE_NAME="ghcr.io/${{ github.repository }}:test-${{ github.ref_name }}"
             export CONTAINER_NAME="nikitaredko-site-test"
             export PORT="8081"
-            export ENV_FILE="/etc/nikitaredko-site/.env.test"
-
             docker compose -p nikitaredko-test pull
             docker compose -p nikitaredko-test up -d
             
@@ -139,11 +138,10 @@ jobs:
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
             cd /opt/nikitaredko
+            cp /etc/nikitaredko-site/.env .env
             export IMAGE_NAME="ghcr.io/${{ github.repository }}:${{ github.ref_name }}"
             export CONTAINER_NAME="nikitaredko-site-prod"
             export PORT="8080"
-            export ENV_FILE="/etc/nikitaredko-site/.env"
-
             docker compose -p nikitaredko-prod pull
             docker compose -p nikitaredko-prod up -d
             docker image prune -f
