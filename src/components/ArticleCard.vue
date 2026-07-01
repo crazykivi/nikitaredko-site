@@ -39,7 +39,7 @@ const formatDate = (dateString: string) => {
       {{ article.title }}
     </h3>
     
-    <p class="text-muted mb-4 line-clamp-2">
+    <p class="text-muted mb-4 line-clamp-4 whitespace-pre-line">
       {{ article.excerpt }}
     </p>
     

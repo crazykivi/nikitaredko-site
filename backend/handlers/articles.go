@@ -176,12 +176,7 @@ func (h *ArticleHandler) mapToArticle(doc OutlineDocument, collectionName string
 		content = doc.Content
 	}
 
-	excerpt := ""
-	if len(content) > 150 {
-		excerpt = content[:150] + "..."
-	} else {
-		excerpt = content
-	}
+	excerpt := getExcerpt(content)
 
 	publishedAt := doc.CreatedAt
 	if doc.PublishedAt != nil {
@@ -205,6 +200,57 @@ func (h *ArticleHandler) mapToArticle(doc OutlineDocument, collectionName string
 		Level:          level,
 		Children:       []Article{},
 	}
+}
+
+func getExcerpt(content string) string {
+	lines := strings.Split(content, "\n")
+	var excerptLines []string
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		isHeading := false
+
+		hashCount := 0
+		for _, ch := range trimmed {
+			if ch == '#' {
+				hashCount++
+			} else {
+				break
+			}
+		}
+
+		if hashCount > 0 && hashCount <= 6 {
+			if len(trimmed) == hashCount {
+				isHeading = true
+			} else {
+				nextChar := trimmed[hashCount]
+				if nextChar == ' ' || nextChar == '\t' {
+					isHeading = true
+				}
+			}
+		}
+
+		if isHeading {
+			break
+		}
+		excerptLines = append(excerptLines, line)
+	}
+
+	excerpt := strings.TrimSpace(strings.Join(excerptLines, "\n"))
+
+	runes := []rune(excerpt)
+	if len(runes) > 0 {
+		if len(runes) > 200 {
+			return string(runes[:200]) + "..."
+		}
+		return excerpt
+	}
+
+	contentRunes := []rune(content)
+	if len(contentRunes) > 200 {
+		return string(contentRunes[:200]) + "..."
+	}
+	return content
 }
 
 func (h *ArticleHandler) buildArticleTree(docs []OutlineDocument, collectionsMap map[string]OutlineCollection) []Article {
