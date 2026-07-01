@@ -61,7 +61,7 @@ func main() {
 		}
 	}
 
-	if *serveStatic {
+	if shouldServeStatic {
 		if _, err := os.Stat("./dist"); err == nil {
 			r.Static("/assets", "./dist/assets")
 			r.StaticFile("/favicon.svg", "./dist/favicon.svg")
@@ -74,7 +74,7 @@ func main() {
 			log.Println("[Static] No ./dist folder found, API-only mode")
 		}
 	} else {
-		log.Println("[Static] Static serving disabled via SERVE_STATIC=false")
+		log.Println("[Static] Static serving disabled")
 	}
 
 	log.Printf("Server starting on port %s", port)
