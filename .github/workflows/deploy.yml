@@ -36,6 +36,9 @@ jobs:
             type=ref,event=tag
             type=raw,value=test-${{ github.ref_name }}
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -46,13 +49,13 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-
       - name: Copy docker-compose.yml to Server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
           source: "docker-compose.yml"
           target: "/opt/nikitaredko"
 
@@ -62,6 +65,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
           script: |
             echo ">>> Deploying test version ${{ github.ref_name }}..."
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -83,6 +87,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
           script: |
             echo ">>> Waiting for test environment to start..."
             sleep 10
@@ -112,6 +117,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
           script: |
             echo ">>> Cleaning up test environment..."
             cd /opt/nikitaredko
@@ -127,6 +133,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
           script: |
             echo ">>> Deploying to production ${{ github.ref_name }}..."
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -150,6 +157,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
           script: |
             echo ">>> Deployment failed! Rolling back test environment..."
             cd /opt/nikitaredko
