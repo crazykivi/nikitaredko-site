@@ -1,0 +1,157 @@
+name: Build and Deploy on Tag
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=tag
+            type=raw,value=test-${{ github.ref_name }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+
+      - name: Copy docker-compose.yml to Server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "docker-compose.yml"
+          target: "/opt/nikitaredko"
+
+      - name: Deploy to Test Environment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo ">>> Deploying test version ${{ github.ref_name }}..."
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            cd /opt/nikitaredko
+            export IMAGE_NAME="ghcr.io/${{ github.repository }}:test-${{ github.ref_name }}"
+            export CONTAINER_NAME="nikitaredko-site-test"
+            export PORT="8081"
+            export ENV_FILE="/etc/nikitaredko-site/.env.test"
+
+            docker compose -p nikitaredko-test pull
+            docker compose -p nikitaredko-test up -d
+            
+            echo ">>> Test deployment completed"
+
+      - name: Wait and Health Check Test Environment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo ">>> Waiting for test environment to start..."
+            sleep 10
+            
+            echo ">>> Running health check on test environment..."
+            MAX_RETRIES=10
+            RETRY_COUNT=0
+            
+            while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+              if curl -f -s http://localhost:8081/ > /dev/null 2>&1; then
+                echo ">>> Health check PASSED"
+                exit 0
+              fi
+              
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              echo ">>> Health check attempt $RETRY_COUNT/$MAX_RETRIES failed, retrying in 5 seconds..."
+              sleep 5
+            done
+            
+            echo ">>> Health check FAILED after $MAX_RETRIES attempts"
+            exit 1
+
+      - name: Cleanup Test Environment
+        if: success()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo ">>> Cleaning up test environment..."
+            cd /opt/nikitaredko
+            docker compose -p nikitaredko-test down
+            docker rmi ghcr.io/${{ github.repository }}:test-${{ github.ref_name }} || true
+            
+            echo ">>> Test environment cleaned up"
+
+      - name: Deploy to Production
+        if: success()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo ">>> Deploying to production ${{ github.ref_name }}..."
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            cd /opt/nikitaredko
+            export IMAGE_NAME="ghcr.io/${{ github.repository }}:${{ github.ref_name }}"
+            export CONTAINER_NAME="nikitaredko-site-prod"
+            export PORT="8080"
+            export ENV_FILE="/etc/nikitaredko-site/.env"
+
+            docker compose -p nikitaredko-prod pull
+            docker compose -p nikitaredko-prod up -d
+            docker image prune -f
+            
+            echo ">>> Production deployment completed successfully!"
+
+      - name: Rollback on Failure
+        if: failure()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo ">>> Deployment failed! Rolling back test environment..."
+            cd /opt/nikitaredko
+            docker compose -p nikitaredko-test down || true
+            echo ">>> Test environment rolled back"

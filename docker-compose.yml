@@ -1,11 +1,12 @@
 services:
   app:
+    image: ${IMAGE_NAME:-nikitaredko-site:local}
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: nikitaredko-site
+    container_name: ${CONTAINER_NAME:-nikitaredko-site}
     ports:
-      - "8080:8080"
+      - "${PORT:-8080}:8080"
     env_file:
-      - /etc/nikitaredko-site/.env
+      - ${ENV_FILE:-/etc/nikitaredko-site/.env}
     restart: unless-stopped
