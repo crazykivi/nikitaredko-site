@@ -190,7 +190,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="min-h-[calc(100vh-5rem)] pt-10 pb-10 px-4">
+  <div class="min-h-[calc(100vh-7.3rem)] pt-10 pb-10 px-4">
     <div class="max-w-7xl mx-auto flex gap-6">
       <aside
         :class="[

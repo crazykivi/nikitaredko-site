@@ -17,12 +17,12 @@
     --muted: #a1a1aa;
     --border: #27272a;
   }
- 
+
   html,
   body {
     margin: 0;
     padding: 0;
-    overflow-y: scroll;
+    overflow-y: auto;
   }
 
   body {
