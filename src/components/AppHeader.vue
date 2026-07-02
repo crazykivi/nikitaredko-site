@@ -26,7 +26,7 @@ const updateTheme = () => {
 </script>
 
 <template>
-  <header class="fixed top-0 left-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-sm select-none">
+  <header class="fixed top-0 left-0 z-50 w-full bg-background/80 backdrop-blur-sm select-none">
     <nav class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
       <router-link to="/" class="text-xl font-bold tracking-tight hover:opacity-70 transition-opacity">
       Nikita Redko

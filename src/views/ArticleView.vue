@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ReadingProgressBar from '../components/ReadingProgressBar.vue'; 
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { getArticle, getArticlesStructured } from "../services/api";
@@ -243,6 +244,7 @@ onUnmounted(() => {
 </script>
 
 <template>
+  <ReadingProgressBar />
   <div class="flex-1 min-w-0">
     <button
       @click="goBack"
