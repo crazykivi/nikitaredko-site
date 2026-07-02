@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AppHeader from './components/AppHeader.vue'
+import AppFooter from './components/AppFooter.vue'
 import LoadingBar from './components/LoadingBar.vue'
 </script>
 
@@ -14,6 +15,7 @@ import LoadingBar from './components/LoadingBar.vue'
         </transition>
       </router-view>
     </main>
+    <AppFooter />
   </div>
 </template>
 
