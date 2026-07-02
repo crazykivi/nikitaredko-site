@@ -1,10 +1,10 @@
 <script setup lang="ts">
-const commitHash = __COMMIT_HASH__ || ''
-const commitShort = __COMMIT_SHORT__ || ''
-const isRelease = __IS_RELEASE__
-const gitTag = isRelease ? __GIT_TAG__ : ''
+const commitHash = import.meta.env.VITE_GIT_COMMIT || ''
+const commitShort = import.meta.env.VITE_GIT_COMMIT_SHORT || ''
+const isRelease = import.meta.env.VITE_GIT_IS_RELEASE === 'true'
+const gitTag = isRelease ? (import.meta.env.VITE_GIT_TAG || '') : ''
 
-const repoUrl = __REPO_URL__ || 'https://github.com/crazykivi/nikitaredko-site'
+const repoUrl = 'https://github.com/crazykivi/nikitaredko-site'
 
 console.log('Git Info:', {
   commitHash,

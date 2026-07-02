@@ -36,10 +36,10 @@ const gitInfo = getGitInfo()
 export default defineConfig({
   plugins: [vue()],
   define: {
-    __COMMIT_HASH__: JSON.stringify(gitInfo.commitHash),
-    __COMMIT_SHORT__: JSON.stringify(gitInfo.commitShort),
-    __GIT_TAG__: JSON.stringify(gitInfo.gitTag),
-    __IS_RELEASE__: gitInfo.isRelease,
+    __COMMIT_HASH__: JSON.stringify(process.env.VITE_GIT_COMMIT || 'unknown'),
+    __COMMIT_SHORT__: JSON.stringify(process.env.VITE_GIT_COMMIT_SHORT || 'unknown'),
+    __GIT_TAG__: JSON.stringify(process.env.VITE_GIT_TAG || ''),
+    __IS_RELEASE__: process.env.VITE_GIT_IS_RELEASE === 'true',
     __REPO_URL__: JSON.stringify('https://github.com/crazykivi/nikitaredko-site'),
   },
   server: {
