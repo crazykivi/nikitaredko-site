@@ -36,11 +36,11 @@ const gitInfo = getGitInfo()
 export default defineConfig({
   plugins: [vue()],
   define: {
-    'import.meta.env.VITE_GIT_COMMIT': JSON.stringify(gitInfo.commitHash),
-    'import.meta.env.VITE_GIT_COMMIT_SHORT': JSON.stringify(gitInfo.commitShort),
-    'import.meta.env.VITE_GIT_TAG': JSON.stringify(gitInfo.gitTag),
-    'import.meta.env.VITE_GIT_IS_RELEASE': JSON.stringify(gitInfo.isRelease),
-    'import.meta.env.VITE_REPO_URL': JSON.stringify('https://github.com/crazykivi/nikitaredko-site'),
+    __COMMIT_HASH__: JSON.stringify(gitInfo.commitHash),
+    __COMMIT_SHORT__: JSON.stringify(gitInfo.commitShort),
+    __GIT_TAG__: JSON.stringify(gitInfo.gitTag),
+    __IS_RELEASE__: gitInfo.isRelease,
+    __REPO_URL__: JSON.stringify('https://github.com/crazykivi/nikitaredko-site'),
   },
   server: {
     proxy: {
