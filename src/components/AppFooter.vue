@@ -5,15 +5,6 @@ const isRelease = import.meta.env.VITE_GIT_IS_RELEASE === 'true'
 const gitTag = isRelease ? (import.meta.env.VITE_GIT_TAG || '') : ''
 
 const repoUrl = 'https://github.com/crazykivi/nikitaredko-site'
-
-console.log('Git Info:', {
-  commitHash,
-  commitShort,
-  isRelease,
-  gitTag,
-  repoUrl
-})
-
 const commitUrl = commitHash ? `${repoUrl}/commit/${commitHash}` : '#'
 const releaseUrl = isRelease && gitTag ? `${repoUrl}/releases/tag/${gitTag}` : ''
 </script>
