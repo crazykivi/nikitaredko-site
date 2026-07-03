@@ -325,25 +325,38 @@ func countAllArticles(articles []Article) int {
 }
 
 func (h *ArticleHandler) fetchCollectionsMap() (map[string]OutlineCollection, error) {
+	cacheKey := "collections_map_raw"
+	if cached, found := h.cache.Get(cacheKey); found {
+		log.Printf("[Cache] HIT: %s", cacheKey)
+		return cached.(map[string]OutlineCollection), nil
+	}
+	log.Printf("[Cache] MISS: %s", cacheKey)
+
 	body := map[string]interface{}{"limit": 100}
 	data, err := h.callOutlineAPI("/api/collections.list", body)
 	if err != nil {
 		return nil, err
 	}
-
 	var collections []OutlineCollection
 	if err := json.Unmarshal(data, &collections); err != nil {
 		return nil, err
 	}
-
 	result := make(map[string]OutlineCollection)
 	for _, c := range collections {
 		result[c.ID] = c
 	}
+
+	h.cache.Set(cacheKey, result)
 	return result, nil
 }
 
 func (h *ArticleHandler) fetchAllDocs() ([]OutlineDocument, error) {
+	cacheKey := "all_docs_raw"
+	if cached, found := h.cache.Get(cacheKey); found {
+		log.Printf("[Cache] HIT: %s", cacheKey)
+		return cached.([]OutlineDocument), nil
+	}
+	log.Printf("[Cache] MISS: %s", cacheKey)
 	body := map[string]interface{}{"limit": 100}
 	data, err := h.callOutlineAPI("/api/documents.list", body)
 	if err != nil {
@@ -354,6 +367,8 @@ func (h *ArticleHandler) fetchAllDocs() ([]OutlineDocument, error) {
 	if err := json.Unmarshal(data, &docs); err != nil {
 		return nil, err
 	}
+
+	h.cache.Set(cacheKey, docs)
 	return docs, nil
 }
 
@@ -537,21 +552,11 @@ func (h *ArticleHandler) SearchArticles(c *gin.Context) {
 		return
 	}
 
-	cacheKey := "search_" + query
-	if cached, found := h.cache.Get(cacheKey); found {
-		log.Printf("[Cache] HIT: %s", cacheKey)
-		c.JSON(http.StatusOK, cached)
-		return
-	}
-
-	log.Printf("[Cache] MISS: %s", cacheKey)
-
 	collectionsMap, err := h.fetchCollectionsMap()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch collections"})
 		return
 	}
-
 	docs, err := h.fetchAllDocs()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch articles"})
@@ -565,7 +570,6 @@ func (h *ArticleHandler) SearchArticles(c *gin.Context) {
 		if doc.ArchivedAt != nil || h.isDraft(doc) {
 			continue
 		}
-
 		coll, ok := collectionsMap[doc.CollectionID]
 		if !ok || !h.isCollectionAllowedByName(coll.Name) {
 			continue
@@ -600,17 +604,14 @@ func (h *ArticleHandler) SearchArticles(c *gin.Context) {
 				break
 			}
 		}
-
 		if iTitleMatch && !jTitleMatch {
 			return true
 		}
 		if !iTitleMatch && jTitleMatch {
 			return false
 		}
-
 		return results[i].PublishedAt > results[j].PublishedAt
 	})
 
-	h.cache.Set(cacheKey, results)
 	c.JSON(http.StatusOK, results)
 }
