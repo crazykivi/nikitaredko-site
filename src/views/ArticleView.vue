@@ -4,6 +4,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { getArticle, getArticlesStructured } from "../services/api";
 import type { Article, CollectionWithArticles } from "../services/api";
+import { useHead } from '@unhead/vue';
 import MarkdownIt from "markdown-it";
 import markdownItContainer from "markdown-it-container";
 import hljs from "highlight.js";
@@ -260,7 +261,7 @@ const seoData = computed(() => {
       { name: 'twitter:image', content: defaultOgImage },
     ],
     link: [
-      { rel: 'canonical', href: currentUrl }
+      { rel: 'canonical' as const, href: currentUrl }
     ]
   }
 })
