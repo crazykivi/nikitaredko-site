@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -91,6 +92,13 @@ type CollectionWithArticles struct {
 	Icon         string    `json:"icon"`
 	Articles     []Article `json:"articles"`
 	ArticleCount int       `json:"articleCount"`
+}
+
+type FeedResponse struct {
+	Articles []Article `json:"articles"`
+	Total    int       `json:"total"`
+	Page     int       `json:"page"`
+	Limit    int       `json:"limit"`
 }
 
 func (h *ArticleHandler) callOutlineAPI(endpoint string, body map[string]interface{}) (json.RawMessage, error) {
@@ -610,8 +618,76 @@ func (h *ArticleHandler) SearchArticles(c *gin.Context) {
 		if !iTitleMatch && jTitleMatch {
 			return false
 		}
-		return results[i].PublishedAt > results[j].PublishedAt
+		return results[i].CreatedAt > results[j].CreatedAt
 	})
 
 	c.JSON(http.StatusOK, results)
+}
+
+func (h *ArticleHandler) GetArticlesFeed(c *gin.Context) {
+	pageStr := c.DefaultQuery("page", "1")
+	limitStr := c.DefaultQuery("limit", "10")
+	collectionID := c.Query("collection")
+
+	page, _ := strconv.Atoi(pageStr)
+	limit, _ := strconv.Atoi(limitStr)
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 10
+	}
+
+	collectionsMap, err := h.fetchCollectionsMap()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch collections"})
+		return
+	}
+	docs, err := h.fetchAllDocs()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch articles"})
+		return
+	}
+
+	var flatArticles []Article
+	for _, doc := range docs {
+		if doc.ArchivedAt != nil || h.isDraft(doc) {
+			continue
+		}
+		coll, ok := collectionsMap[doc.CollectionID]
+		if !ok || !h.isCollectionAllowedByName(coll.Name) {
+			continue
+		}
+		if collectionID != "" && doc.CollectionID != collectionID {
+			continue
+		}
+
+		article := h.mapToArticle(doc, coll.Name, 0)
+		article.Content = ""
+		flatArticles = append(flatArticles, article)
+	}
+
+	sort.Slice(flatArticles, func(i, j int) bool {
+		return flatArticles[i].CreatedAt > flatArticles[j].CreatedAt
+	})
+
+	total := len(flatArticles)
+
+	start := (page - 1) * limit
+	end := start + limit
+	if start > total {
+		start = total
+	}
+	if end > total {
+		end = total
+	}
+
+	pagedArticles := flatArticles[start:end]
+
+	c.JSON(http.StatusOK, FeedResponse{
+		Articles: pagedArticles,
+		Total:    total,
+		Page:     page,
+		Limit:    limit,
+	})
 }

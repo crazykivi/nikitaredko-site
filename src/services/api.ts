@@ -9,8 +9,8 @@ export interface Article {
   id: string
   title: string
   excerpt: string
-	content?: string
-	createdAt: string
+  content?: string
+  createdAt: string
   publishedAt: string
   readTime: number
   tags: string[]
@@ -35,6 +35,13 @@ export interface CollectionWithArticles {
   icon: string | null
   articles: Article[]
   articleCount: number
+}
+
+export interface FeedResponse {
+  articles: Article[]
+  total: number
+  page: number
+  limit: number
 }
 
 async function request<T>(endpoint: string, signal?: AbortSignal): Promise<T> {
@@ -66,6 +73,19 @@ export async function getArticle(id: string, signal?: AbortSignal): Promise<Arti
 }
 
 export async function searchArticles(query: string, signal?: AbortSignal): Promise<Article[]> {
-    if (!query.trim()) return []
-    return request<Article[]>(`/articles/search?q=${encodeURIComponent(query)}`, signal)
+  if (!query.trim()) return []
+  return request<Article[]>(`/articles/search?q=${encodeURIComponent(query)}`, signal)
+}
+
+export async function getArticlesFeed(
+  page: number,
+  limit: number,
+  collectionId?: string,
+  signal?: AbortSignal
+): Promise<FeedResponse> {
+  let url = `/articles/feed?page=${page}&limit=${limit}`
+  if (collectionId) {
+    url += `&collection=${collectionId}`
+  }
+  return request<FeedResponse>(url, signal)
 }

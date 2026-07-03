@@ -48,6 +48,7 @@ func main() {
 		api.GET("/articles/structured", articleHandler.ListArticlesStructured)
 		api.GET("/articles/:id", articleHandler.GetArticle)
 		api.GET("/articles/search", articleHandler.SearchArticles)
+		api.GET("/articles/feed", articleHandler.GetArticlesFeed)
 
 		// CACHE
 		api.POST("/webhook/outline", cacheManager.WebhookHandler)
