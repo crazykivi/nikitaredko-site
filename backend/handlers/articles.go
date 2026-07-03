@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"io"
 	"log"
+	"math"
 	"net/http"
 	"os"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -180,6 +182,39 @@ func (h *ArticleHandler) isCollectionAllowedByName(name string) bool {
 	return false
 }
 
+var (
+	reFencedCode     = regexp.MustCompile("(?s)```.*?```")
+	reInlineCode     = regexp.MustCompile("`[^`]*`")
+	reMarkdownSyntax = regexp.MustCompile(`[#*_\[\]\(\)!>~\-]`)
+)
+
+func calculateReadTime(content string) int {
+	codeMatches := reFencedCode.FindAllString(content, -1)
+	codeLines := 0
+	for _, block := range codeMatches {
+		lines := strings.Count(block, "\n")
+		if lines > 2 {
+			codeLines += lines - 2
+		}
+	}
+	text := reFencedCode.ReplaceAllString(content, "")
+	text = reInlineCode.ReplaceAllString(text, "")
+	text = reMarkdownSyntax.ReplaceAllString(text, " ")
+	words := strings.Fields(text)
+	wordCount := len(words)
+	textMinutes := float64(wordCount) / 200.0
+	codeMinutes := float64(codeLines) / 20.0
+
+	totalMinutes := textMinutes + codeMinutes
+
+	readTime := int(math.Ceil(totalMinutes))
+	if readTime < 1 {
+		return 1
+	}
+
+	return readTime
+}
+
 func (h *ArticleHandler) mapToArticle(doc OutlineDocument, collectionName string, level int) Article {
 	content := doc.Text
 	if content == "" {
@@ -193,8 +228,7 @@ func (h *ArticleHandler) mapToArticle(doc OutlineDocument, collectionName string
 		publishedAt = *doc.PublishedAt
 	}
 
-	wordCount := len([]rune(content))
-	readTime := (wordCount + 199) / 200
+	readTime := calculateReadTime(content)
 
 	return Article{
 		ID:             doc.ID,
