@@ -337,7 +337,7 @@ onUnmounted(() => {
       <div
         class="prose prose-neutral dark:prose-invert max-w-none break-words article-content"
       >
-        <div v-html="md.render(article.content)"></div>
+        <div v-html="md.render(article.content || '')"></div>
       </div>
 
       <nav
