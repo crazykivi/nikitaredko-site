@@ -53,7 +53,7 @@ const formatDate = (dateString: string) => {
       v-html="renderExcerpt(article.excerpt)"
     ></div>
     <div class="flex items-center gap-4 text-sm text-muted">
-      <time>{{ formatDate(article.publishedAt) }}</time>
+      <time>{{ formatDate(article.createdAt) }}</time>
       <span>•</span>
       <span>{{ article.readTime }} мин чтения</span>
     </div>
