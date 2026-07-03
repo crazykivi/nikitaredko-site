@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineOptions({ name: 'ArticlesView' })
-import { ref, computed, onMounted, onUnmounted, onActivated, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, onActivated, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { getArticlesFeed } from '../services/api'
 import type { Article } from '../services/api'
