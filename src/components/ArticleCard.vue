@@ -44,7 +44,7 @@ const formatDate = (dateString: string) => {
     </p>
     
     <div class="flex items-center gap-4 text-sm text-muted">
-      <time>{{ formatDate(article.publishedAt) }}</time>
+      <time>{{ formatDate(article.createdAt) }}</time>
       <span>•</span>
       <span>{{ article.readTime }} мин чтения</span>
     </div>

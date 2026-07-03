@@ -72,7 +72,8 @@ type Article struct {
 	ID             string    `json:"id"`
 	Title          string    `json:"title"`
 	Excerpt        string    `json:"excerpt"`
-	Content        string    `json:"content"`
+	Content        string    `json:"content,omitempty"`
+	CreatedAt      string    `json:"createdAt"`
 	PublishedAt    string    `json:"publishedAt"`
 	ReadTime       int       `json:"readTime"`
 	Tags           []string  `json:"tags"`
@@ -192,6 +193,7 @@ func (h *ArticleHandler) mapToArticle(doc OutlineDocument, collectionName string
 		Title:          doc.Title,
 		Excerpt:        excerpt,
 		Content:        content,
+		CreatedAt:      doc.CreatedAt,
 		PublishedAt:    publishedAt,
 		ReadTime:       readTime,
 		Tags:           doc.Tags,
@@ -405,7 +407,7 @@ func (h *ArticleHandler) ListArticles(c *gin.Context) {
 	}
 
 	articles := h.buildArticleTree(docs, collectionsMap)
-
+	stripContent(articles)
 	h.cache.Set(cacheKey, articles)
 	c.JSON(http.StatusOK, articles)
 }
@@ -419,6 +421,15 @@ func flattenArticles(articles []Article) []Article {
 		}
 	}
 	return result
+}
+
+func stripContent(articles []Article) {
+	for i := range articles {
+		articles[i].Content = ""
+		if len(articles[i].Children) > 0 {
+			stripContent(articles[i].Children)
+		}
+	}
 }
 
 func (h *ArticleHandler) ListArticlesStructured(c *gin.Context) {
@@ -463,6 +474,7 @@ func (h *ArticleHandler) ListArticlesStructured(c *gin.Context) {
 		}
 		docs := collectionDocs[coll.ID]
 		articles := h.buildArticleTree(docs, collectionsMap)
+		stripContent(articles)
 		allArticles := flattenArticles(articles)
 		articleCount := len(allArticles)
 
@@ -565,6 +577,7 @@ func (h *ArticleHandler) SearchArticles(c *gin.Context) {
 
 		if titleMatch || contentMatch {
 			article := h.mapToArticle(doc, coll.Name, 0)
+			article.Content = ""
 			if titleMatch {
 				article.Tags = append(article.Tags, "title-match")
 			}

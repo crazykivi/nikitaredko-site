@@ -56,7 +56,7 @@ const sortedArticles = computed(() => {
   }
 
   return articles.sort(
-    (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+		(a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 });
 
@@ -328,7 +328,7 @@ onUnmounted(() => {
         </div>
         <h1 class="text-4xl font-bold mb-4 break-words">{{ article.title }}</h1>
         <div class="flex items-center gap-4 text-sm text-muted">
-          <time>{{ formatDate(article.publishedAt) }}</time>
+          <time>{{ formatDate(article.createdAt) }}</time>
           <span>•</span>
           <span>{{ article.readTime }} мин чтения</span>
         </div>
@@ -375,7 +375,7 @@ onUnmounted(() => {
               {{ prevArticle.title }}
             </div>
             <div class="text-xs text-muted mt-1">
-              {{ formatDate(prevArticle.publishedAt) }}
+              {{ formatDate(prevArticle.createdAt) }}
             </div>
           </div>
         </button>
@@ -394,7 +394,7 @@ onUnmounted(() => {
               {{ nextArticle.title }}
             </div>
             <div class="text-xs text-muted mt-1">
-              {{ formatDate(nextArticle.publishedAt) }}
+              {{ formatDate(nextArticle.createdAt) }}
             </div>
           </div>
           <div

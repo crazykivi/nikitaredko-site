@@ -9,7 +9,8 @@ export interface Article {
   id: string
   title: string
   excerpt: string
-  content: string
+	content?: string
+	createdAt: string
   publishedAt: string
   readTime: number
   tags: string[]

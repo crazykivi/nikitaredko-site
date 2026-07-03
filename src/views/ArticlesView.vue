@@ -51,7 +51,7 @@ const allFlatArticles = computed((): Article[] => {
     if (coll) articles = flattenArticles(coll.articles)
   }
   
-  return articles.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+	return articles.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 })
 
 const displayedArticles = computed(() => {
