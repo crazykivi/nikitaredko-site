@@ -227,6 +227,46 @@ const goToCollection = (collectionId: string) => {
   router.push({ path: "/articles", query: { collection: collectionId } });
 };
 
+const siteName = 'Nikita Redko'
+const defaultOgImage = 'https://www.nikitaredko.ru/favicon.svg' 
+
+const seoData = computed(() => {
+  const currentUrl = window.location.href
+  
+  if (!article.value) {
+    return { title: siteName }
+  }
+
+  const title = `${article.value.title} | ${siteName}`
+  
+  const rawDesc = article.value.excerpt || article.value.content || ''
+  const description = rawDesc.replace(/<[^>]*>?/gm, '').substring(0, 150).trim() || 'Статья на сайте Никиты Редко'
+
+  return {
+    title,
+    meta: [
+      { name: 'description', content: description },
+      
+      { property: 'og:title', content: title },
+      { property: 'og:description', content: description },
+      { property: 'og:type', content: 'article' },
+      { property: 'og:url', content: currentUrl },
+      { property: 'og:image', content: defaultOgImage },
+      { property: 'og:site_name', content: siteName },
+      
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: title },
+      { name: 'twitter:description', content: description },
+      { name: 'twitter:image', content: defaultOgImage },
+    ],
+    link: [
+      { rel: 'canonical', href: currentUrl }
+    ]
+  }
+})
+
+useHead(seoData)
+
 watch(
   () => route.params.id,
   (newId, oldId) => {
