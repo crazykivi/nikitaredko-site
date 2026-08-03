@@ -38,7 +38,7 @@ const onClick = (id: string) => {
             'block w-full text-left py-1 px-2 rounded-md text-xs transition-all duration-150 truncate',
             item.level === 3 ? 'ml-3' : '',
             activeId === item.id
-              ? 'text-foreground font-medium bg-muted/60'
+              ? 'text-foreground font-bold bg-muted/60'
               : 'text-muted hover:text-foreground hover:bg-muted/30'
           ]"
           :title="item.text"
