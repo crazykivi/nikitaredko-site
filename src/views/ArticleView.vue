@@ -4,7 +4,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { getArticle, getArticlesStructured } from "../services/api";
 import type { Article, CollectionWithArticles } from "../services/api";
-import { useHead } from '@unhead/vue';
+import { useHead, type ReactiveHead } from '@unhead/vue';
 import MarkdownIt from "markdown-it";
 import markdownItContainer from "markdown-it-container";
 import hljs from "highlight.js";
@@ -232,39 +232,76 @@ const goToCollection = (collectionId: string) => {
 };
 
 const siteName = 'Nikita Redko'
-const defaultOgImage = 'https://www.nikitaredko.ru/favicon.svg' 
 
-const seoData = computed(() => {
-  const currentUrl = window.location.href
-  
+const seoData = computed<ReactiveHead>(() => {
+  const currentUrl = typeof window !== 'undefined' ? window.location.href : ''
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  const ogImage = `${origin}/favicon.svg`
+
   if (!article.value) {
-    return { title: siteName }
+    return {
+      title: siteName,
+      script: []
+    }
   }
 
   const title = `${article.value.title} | ${siteName}`
-  
   const rawDesc = article.value.excerpt || article.value.content || ''
   const description = rawDesc.replace(/<[^>]*>?/gm, '').substring(0, 150).trim() || 'Статья на сайте Никиты Редко'
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: article.value.title,
+    description: description,
+    datePublished: article.value.publishedAt || article.value.createdAt,
+    dateModified: article.value.createdAt,
+    author: {
+      '@type': 'Person',
+      name: siteName,
+      url: origin
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: siteName,
+      logo: {
+        '@type': 'ImageObject',
+        url: ogImage
+      }
+    },
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': currentUrl
+    },
+    image: ogImage,
+    articleSection: article.value.collectionName || '',
+    keywords: article.value.tags?.join(', ') || '',
+    inLanguage: 'ru'
+  }
 
   return {
     title,
     meta: [
       { name: 'description', content: description },
-      
       { property: 'og:title', content: title },
       { property: 'og:description', content: description },
       { property: 'og:type', content: 'article' },
       { property: 'og:url', content: currentUrl },
-      { property: 'og:image', content: defaultOgImage },
+      { property: 'og:image', content: ogImage },
       { property: 'og:site_name', content: siteName },
-      
       { name: 'twitter:card', content: 'summary_large_image' },
       { name: 'twitter:title', content: title },
       { name: 'twitter:description', content: description },
-      { name: 'twitter:image', content: defaultOgImage },
+      { name: 'twitter:image', content: ogImage },
     ],
     link: [
       { rel: 'canonical' as const, href: currentUrl }
+    ],
+    script: [
+      {
+        type: 'application/ld+json',
+        innerHTML: JSON.stringify(jsonLd)
+      }
     ]
   }
 })
