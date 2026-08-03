@@ -213,7 +213,7 @@ blockTypes.forEach((blockType) => {
 
 const defaultHeadingOpen =
   md.renderer.rules.heading_open ||
-  ((tokens: any, idx: number, options: any, env: any, self: any) =>
+  ((tokens: any, idx: number, options: any, _env: any, self: any) =>
     self.renderToken(tokens, idx, options))
 
 md.renderer.rules.heading_open = (tokens: any, idx: number, options: any, env: any, self: any) => {
