@@ -3,6 +3,8 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"log"
 	"math"
@@ -17,6 +19,8 @@ import (
 
 	"nikitaredko-backend/cache"
 )
+
+var ErrOutlineNotFound = errors.New("outline resource not found")
 
 type ArticleHandler struct {
 	outlineURL         string
@@ -69,6 +73,7 @@ type OutlineDocument struct {
 	CollectionID     string   `json:"collectionId"`
 	ParentDocumentID *string  `json:"parentDocumentId"`
 	ArchivedAt       *string  `json:"archivedAt"`
+	DeletedAt        *string  `json:"deletedAt"`
 }
 
 type Article struct {
@@ -130,6 +135,10 @@ func (h *ArticleHandler) callOutlineAPI(endpoint string, body map[string]interfa
 		return nil, err
 	}
 
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, ErrOutlineNotFound
+	}
+
 	var outlineResp OutlineResponse
 	if err := json.Unmarshal(respBody, &outlineResp); err != nil {
 		return nil, err
@@ -137,10 +146,20 @@ func (h *ArticleHandler) callOutlineAPI(endpoint string, body map[string]interfa
 
 	if !outlineResp.OK {
 		log.Printf("Outline API error: %s", string(respBody))
-		return nil, err
+
+		if bytes.Contains(respBody, []byte("not_found")) ||
+			bytes.Contains(respBody, []byte("Not Found")) {
+			return nil, ErrOutlineNotFound
+		}
+
+		return nil, fmt.Errorf("outline API returned not ok")
 	}
 
 	return outlineResp.Data, nil
+}
+
+func (h *ArticleHandler) isHidden(doc OutlineDocument) bool {
+	return doc.ArchivedAt != nil || doc.DeletedAt != nil || h.isDraft(doc)
 }
 
 func (h *ArticleHandler) isDraft(doc OutlineDocument) bool {
@@ -301,7 +320,7 @@ func getExcerpt(content string) string {
 func (h *ArticleHandler) buildArticleTree(docs []OutlineDocument, collectionsMap map[string]OutlineCollection) []Article {
 	articleMap := make(map[string]*Article)
 	for _, doc := range docs {
-		if doc.ArchivedAt != nil || h.isDraft(doc) {
+		if h.isHidden(doc) {
 			continue
 		}
 		coll, ok := collectionsMap[doc.CollectionID]
@@ -552,7 +571,6 @@ func (h *ArticleHandler) ListArticlesStructured(c *gin.Context) {
 func (h *ArticleHandler) GetArticle(c *gin.Context) {
 	id := c.Param("id")
 	cacheKey := "article_" + id
-
 	if cached, found := h.cache.Get(cacheKey); found {
 		log.Printf("[Cache] HIT: %s", cacheKey)
 		c.JSON(http.StatusOK, cached)
@@ -560,31 +578,82 @@ func (h *ArticleHandler) GetArticle(c *gin.Context) {
 	}
 	log.Printf("[Cache] MISS: %s", cacheKey)
 
-	body := map[string]interface{}{"id": id}
+	body := map[string]interface{}{
+		"id": id,
+	}
 	data, err := h.callOutlineAPI("/api/documents.info", body)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch article"})
+		if errors.Is(err, ErrOutlineNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "Article not found",
+			})
+			return
+		}
+		c.JSON(http.StatusBadGateway, gin.H{
+			"error": "Failed to fetch article",
+		})
 		return
 	}
 
 	var doc OutlineDocument
 	if err := json.Unmarshal(data, &doc); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse article"})
+		c.JSON(http.StatusBadGateway, gin.H{
+			"error": "Failed to parse article",
+		})
+		return
+	}
+	if doc.ID == "" {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Article not found",
+		})
 		return
 	}
 
-	collectionName := ""
-	collectionsMap, err := h.fetchCollectionsMap()
-	if err == nil {
-		if coll, ok := collectionsMap[doc.CollectionID]; ok {
-			collectionName = coll.Name
-		}
+	allowed, collectionName, err := h.canServeDocument(doc)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to verify article",
+		})
+		return
+	}
+	if !allowed {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Article not found",
+		})
+		return
 	}
 
 	article := h.mapToArticle(doc, collectionName, 0)
 
 	h.cache.Set(cacheKey, article)
 	c.JSON(http.StatusOK, article)
+}
+
+func (h *ArticleHandler) canServeDocument(doc OutlineDocument) (bool, string, error) {
+	if h.isHidden(doc) {
+		return false, "", nil
+	}
+
+	collectionsMap, err := h.fetchCollectionsMap()
+	if err != nil {
+		if len(h.allowedCollections) > 0 {
+			return false, "", err
+		}
+		return true, "", nil
+	}
+
+	coll, ok := collectionsMap[doc.CollectionID]
+	if !ok {
+		if len(h.allowedCollections) > 0 {
+			return false, "", nil
+		}
+		return true, "", nil
+	}
+
+	if len(h.allowedCollections) > 0 && !h.isCollectionAllowedByName(coll.Name) {
+		return false, "", nil
+	}
+	return true, coll.Name, nil
 }
 
 func (h *ArticleHandler) SearchArticles(c *gin.Context) {
@@ -609,7 +678,7 @@ func (h *ArticleHandler) SearchArticles(c *gin.Context) {
 	var results []Article
 
 	for _, doc := range docs {
-		if doc.ArchivedAt != nil || h.isDraft(doc) {
+		if h.isHidden(doc) {
 			continue
 		}
 		coll, ok := collectionsMap[doc.CollectionID]
