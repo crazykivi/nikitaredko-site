@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import ReadingProgressBar from '../components/ReadingProgressBar.vue'; 
-import { ref, computed, onMounted, onUnmounted, watch } from "vue";
+import ReadingProgressBar from '../components/ReadingProgressBar.vue';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { getArticle, getArticlesStructured } from "../services/api";
 import type { Article, CollectionWithArticles } from "../services/api";
 import { useHead, type ReactiveHead } from '@unhead/vue';
+import type { TOCItem } from '../components/ArticleTOC.vue'
+import FloatingTOC from '../components/FloatingTOC.vue'
 import MarkdownIt from "markdown-it";
 import markdownItContainer from "markdown-it-container";
 import hljs from "highlight.js";
@@ -23,6 +25,39 @@ const giscusTheme = ref<'light' | 'dark'>('light')
 
 let abortController: AbortController | null = null;
 let themeObserver: MutationObserver | null = null
+
+const activeHeadingId = ref('')
+let headingObserver: IntersectionObserver | null = null
+
+const tocItems = computed((): TOCItem[] => {
+  if (!article.value?.content) return []
+  return extractHeadings(article.value.content)
+})
+
+const setupHeadingObserver = () => {
+  if (headingObserver) headingObserver.disconnect()
+  if (tocItems.value.length <= 1) return
+
+  headingObserver = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          activeHeadingId.value = entry.target.id
+          break
+        }
+      }
+    },
+    { rootMargin: '-100px 0px -60% 0px', threshold: 0 }
+  )
+
+  nextTick(() => {
+    for (const item of tocItems.value) {
+      const el = document.getElementById(item.id)
+      if (el) headingObserver?.observe(el)
+    }
+  })
+}
+
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString("ru-RU", {
     year: "numeric",
@@ -30,6 +65,40 @@ const formatDate = (dateString: string) => {
     day: "numeric",
   });
 };
+const slugify = (text: string) => {
+  return text
+    .toLowerCase()
+    .replace(/[^\wа-яё\s-]/gi, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
+const extractHeadings = (markdown: string): TOCItem[] => {
+  const headings: TOCItem[] = []
+  const lines = markdown.split('\n')
+  let inCodeBlock = false
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (trimmed.startsWith('```')) {
+      inCodeBlock = !inCodeBlock
+      continue
+    }
+    if (inCodeBlock) continue
+
+    const match = trimmed.match(/^(#{2,3})\s+(.+)$/)
+    if (match) {
+      headings.push({
+        id: slugify(match[2].trim()),
+        text: match[2].trim(),
+        level: match[1].length,
+      })
+    }
+  }
+
+  return headings
+}
 
 const flattenArticles = (articles: Article[]): Article[] => {
   const result: Article[] = [];
@@ -142,6 +211,20 @@ blockTypes.forEach((blockType) => {
   });
 });
 
+const defaultHeadingOpen =
+  md.renderer.rules.heading_open ||
+  ((tokens: any, idx: number, options: any, env: any, self: any) =>
+    self.renderToken(tokens, idx, options))
+
+md.renderer.rules.heading_open = (tokens: any, idx: number, options: any, env: any, self: any) => {
+  const token = tokens[idx]
+  const nextToken = tokens[idx + 1]
+  if (nextToken && nextToken.type === 'inline') {
+    token.attrSet('id', slugify(nextToken.content))
+  }
+  return defaultHeadingOpen(tokens, idx, options, env, self)
+}
+
 if (typeof window !== "undefined") {
   (window as any).__copyCode = (button: HTMLButtonElement) => {
     const codeBlock = button.closest(".code-block-wrapper");
@@ -209,6 +292,8 @@ const loadArticle = async (id: string) => {
     );
 
     window.scrollTo({ top: 0, behavior: "smooth" });
+
+    nextTick(() => setupHeadingObserver())
   } catch (e: any) {
     if (e.name === "AbortError") return;
     error.value = e instanceof Error ? e.message : "Failed to load article";
@@ -327,15 +412,16 @@ onMounted(async () => {
       }
     }
   })
-  themeObserver.observe(document.documentElement, { 
-    attributes: true, 
-    attributeFilter: ['class'] 
+  themeObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['class']
   })
 });
 
 onUnmounted(() => {
   if (abortController) abortController.abort()
   if (themeObserver) themeObserver.disconnect()
+  if (headingObserver) headingObserver.disconnect()
 });
 </script>
 
@@ -377,7 +463,7 @@ onUnmounted(() => {
       <p class="text-red-500">{{ error }}</p>
     </div>
 
-    <article v-else-if="article" class="animate-fade-in">
+    <article v-else-if="article" class="animate-fade-in max-w-4xl mx-auto">
       <div class="mb-8">
         <button
           v-if="article.collectionName && article.collectionId"
@@ -439,11 +525,15 @@ onUnmounted(() => {
       <div class="mt-16 pt-8 border-t border-border">
         <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+            />
           </svg>
           Обсуждение
         </h2>
-        
         <Giscus
           repo="crazykivi/nikitaredko-site"
           repo-id="R_kgDOTJQbZA"
@@ -543,4 +633,9 @@ onUnmounted(() => {
       <p class="text-muted">Возможно, она была удалена или перемещена</p>
     </div>
   </div>
+  <FloatingTOC
+    v-if="article && tocItems.length > 1"
+    :items="tocItems"
+    :active-id="activeHeadingId"
+  />
 </template>
