@@ -2,6 +2,7 @@
 import AppHeader from './components/AppHeader.vue'
 import AppFooter from './components/AppFooter.vue'
 import LoadingBar from './components/LoadingBar.vue'
+import ScrollToTop from './components/ScrollToTop.vue'
 </script>
 
 <template>
@@ -16,6 +17,7 @@ import LoadingBar from './components/LoadingBar.vue'
       </router-view>
     </main>
     <AppFooter />
+    <ScrollToTop />
   </div>
 </template>
 
