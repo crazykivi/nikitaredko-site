@@ -40,6 +40,7 @@ func main() {
 
 	cacheManager := cache.New()
 	articleHandler := handlers.NewArticleHandler(cacheManager)
+	usesHandler := handlers.NewUsesHandler(articleHandler, cacheManager)
 
 	api := r.Group("/api")
 	{
@@ -51,6 +52,7 @@ func main() {
 		api.GET("/articles/feed", articleHandler.GetArticlesFeed)
 		api.GET("/rss.xml", articleHandler.GetRSS)
 		api.GET("/sitemap.xml", articleHandler.GetSitemap)
+		api.GET("/uses", usesHandler.GetUses)
 
 		// CACHE
 		api.POST("/webhook/outline", cacheManager.WebhookHandler)

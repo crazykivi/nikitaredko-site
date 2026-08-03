@@ -44,6 +44,24 @@ export interface FeedResponse {
   limit: number
 }
 
+export interface UsesItem {
+  name: string
+  description: string
+  url?: string
+}
+
+export interface UsesCategory {
+  id: string
+  title: string
+  description: string
+  items: UsesItem[]
+}
+
+export interface UsesResponse {
+  categories: UsesCategory[]
+  lastUpdated: string
+}
+
 async function request<T>(endpoint: string, signal?: AbortSignal): Promise<T> {
   startLoading()
   try {
@@ -75,6 +93,10 @@ export async function getArticle(id: string, signal?: AbortSignal): Promise<Arti
 export async function searchArticles(query: string, signal?: AbortSignal): Promise<Article[]> {
   if (!query.trim()) return []
   return request<Article[]>(`/articles/search?q=${encodeURIComponent(query)}`, signal)
+}
+
+export async function getUses(signal?: AbortSignal): Promise<UsesResponse> {
+  return request<UsesResponse>('/uses', signal)
 }
 
 export async function getArticlesFeed(
