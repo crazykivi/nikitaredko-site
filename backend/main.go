@@ -49,6 +49,7 @@ func main() {
 		api.GET("/articles/:id", articleHandler.GetArticle)
 		api.GET("/articles/search", articleHandler.SearchArticles)
 		api.GET("/articles/feed", articleHandler.GetArticlesFeed)
+		api.GET("/rss.xml", articleHandler.GetRSS)
 
 		// CACHE
 		api.POST("/webhook/outline", cacheManager.WebhookHandler)
