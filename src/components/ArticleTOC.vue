@@ -28,7 +28,6 @@ const onClick = (id: string) => {
 <template>
   <nav aria-label="Содержание статьи" class="select-none">
     <p v-if="!hideTitle" class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">
-      Содержание
     </p>
     <ul class="space-y-0.5">
       <li v-for="item in items" :key="item.id">
