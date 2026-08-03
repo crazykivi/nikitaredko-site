@@ -9,6 +9,7 @@ import MarkdownIt from "markdown-it";
 import markdownItContainer from "markdown-it-container";
 import hljs from "highlight.js";
 import "highlight.js/styles/github-dark.css";
+import Giscus from '@giscus/vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -379,6 +380,30 @@ onUnmounted(() => {
         class="prose prose-neutral dark:prose-invert max-w-none break-words article-content"
       >
         <div v-html="md.render(article.content || '')"></div>
+      </div>
+
+      <div class="mt-16 pt-8 border-t border-border">
+        <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+          Обсуждение
+        </h2>
+        
+        <Giscus
+          repo="crazykivi/nikitaredko-site"
+          repo-id="R_kgDOTJQbZA"
+          category="Show and tell"
+          category-id="DIC_kwDOTJQbZM4DCjCb"
+          mapping="specific"
+          :term="article.id"
+          reactions-enabled="1"
+          emit-metadata="0"
+          input-position="top"
+          theme="preferred_color_scheme"
+          lang="ru"
+          loading="lazy"
+        />
       </div>
 
       <nav
