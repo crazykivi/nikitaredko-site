@@ -12,8 +12,20 @@ const releaseUrl = isRelease && gitTag ? `${repoUrl}/releases/tag/${gitTag}` : '
 <template>
   <footer class="border-t border-border bg-background/50 backdrop-blur-sm select-none">
     <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted">
-      <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2">
         <span>&copy; {{ new Date().getFullYear() }} Nikita Redko</span>
+        <span class="text-border">·</span>
+        <router-link to="/uses" class="font-mono hover:text-foreground transition-colors">
+          /uses
+        </router-link>
+        <span class="text-border">·</span>
+        <a
+          href="/api/rss.xml"
+          class="font-mono hover:text-foreground transition-colors"
+          title="RSS-лента"
+        >
+          /rss
+        </a>
       </div>
       
       <div class="flex items-center gap-3 font-mono">
