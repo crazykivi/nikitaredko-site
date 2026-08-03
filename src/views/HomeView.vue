@@ -94,32 +94,3 @@ onMounted(() => {
     </div>
   </div>
 </template>
-
-<style scoped>
-.animate-fade-in {
-  animation: fadeIn 0.6s ease-out;
-}
-
-.animate-fade-in-delayed {
-  animation: fadeIn 0.6s ease-out 0.2s both;
-}
-
-.animate-fade-in-delayed-2 {
-  animation: fadeIn 0.6s ease-out 0.4s both;
-}
-
-.animate-fade-in-delayed-3 {
-  animation: fadeIn 0.6s ease-out 0.6s both;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-</style>
