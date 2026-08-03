@@ -332,7 +332,7 @@ func (h *ArticleHandler) buildArticleTree(docs []OutlineDocument, collectionsMap
 	}
 
 	for _, doc := range docs {
-		if doc.ArchivedAt != nil || h.isDraft(doc) {
+		if h.isHidden(doc) {
 			continue
 		}
 		if _, ok := collectionsMap[doc.CollectionID]; !ok {
@@ -357,7 +357,7 @@ func (h *ArticleHandler) buildArticleTree(docs []OutlineDocument, collectionsMap
 
 	rootArticles := make([]Article, 0)
 	for _, doc := range docs {
-		if doc.ArchivedAt != nil || h.isDraft(doc) {
+		if h.isHidden(doc) {
 			continue
 		}
 		if _, ok := collectionsMap[doc.CollectionID]; !ok {
@@ -531,7 +531,7 @@ func (h *ArticleHandler) ListArticlesStructured(c *gin.Context) {
 
 	collectionDocs := make(map[string][]OutlineDocument)
 	for _, doc := range docs {
-		if doc.ArchivedAt != nil || h.isDraft(doc) {
+		if h.isHidden(doc) {
 			continue
 		}
 		if _, ok := collectionsMap[doc.CollectionID]; !ok {
@@ -754,7 +754,7 @@ func (h *ArticleHandler) GetArticlesFeed(c *gin.Context) {
 
 	var flatArticles []Article
 	for _, doc := range docs {
-		if doc.ArchivedAt != nil || h.isDraft(doc) {
+		if h.isHidden(doc) {
 			continue
 		}
 		coll, ok := collectionsMap[doc.CollectionID]
