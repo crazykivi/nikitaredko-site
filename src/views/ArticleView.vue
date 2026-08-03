@@ -19,8 +19,10 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 const allCollections = ref<CollectionWithArticles[]>([]);
 const flatArticles = ref<Article[]>([]);
+const giscusTheme = ref<'light' | 'dark'>('light')
 
 let abortController: AbortController | null = null;
+let themeObserver: MutationObserver | null = null
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString("ru-RU", {
     year: "numeric",
@@ -278,10 +280,25 @@ watch(
 
 onMounted(async () => {
   await loadArticle(route.params.id as string);
+
+  giscusTheme.value = document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+  themeObserver = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      if (mutation.attributeName === 'class') {
+        const isDark = document.documentElement.classList.contains('dark')
+        giscusTheme.value = isDark ? 'dark' : 'light'
+      }
+    }
+  })
+  themeObserver.observe(document.documentElement, { 
+    attributes: true, 
+    attributeFilter: ['class'] 
+  })
 });
 
 onUnmounted(() => {
-  if (abortController) abortController.abort();
+  if (abortController) abortController.abort()
+  if (themeObserver) themeObserver.disconnect()
 });
 </script>
 
@@ -400,7 +417,7 @@ onUnmounted(() => {
           reactions-enabled="1"
           emit-metadata="0"
           input-position="top"
-          theme="preferred_color_scheme"
+          :theme="giscusTheme"
           lang="ru"
           loading="lazy"
         />
