@@ -89,7 +89,7 @@ func (h *ArticleHandler) GetSitemap(c *gin.Context) {
 	var articles []articleEntry
 
 	for _, doc := range docs {
-		if doc.ArchivedAt != nil || h.isDraft(doc) {
+		if h.isHidden(doc) {
 			continue
 		}
 		coll, ok := collectionsMap[doc.CollectionID]

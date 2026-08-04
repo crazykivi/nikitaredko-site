@@ -81,7 +81,7 @@ func (h *ArticleHandler) GetRSS(c *gin.Context) {
 
 	var articles []Article
 	for _, doc := range docs {
-		if doc.ArchivedAt != nil || h.isDraft(doc) {
+		if h.isHidden(doc) {
 			continue
 		}
 		coll, ok := collectionsMap[doc.CollectionID]

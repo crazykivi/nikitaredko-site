@@ -99,10 +99,7 @@ func main() {
 		if _, err := os.Stat("./dist"); err == nil {
 			r.Static("/assets", "./dist/assets")
 			r.StaticFile("/favicon.svg", "./dist/favicon.svg")
-
-			r.NoRoute(func(c *gin.Context) {
-				c.File("./dist/index.html")
-			})
+			r.NoRoute(articleHandler.ServeFrontend)
 			log.Println("[Static] Serving frontend from ./dist")
 		} else {
 			log.Println("[Static] No ./dist folder found, API-only mode")

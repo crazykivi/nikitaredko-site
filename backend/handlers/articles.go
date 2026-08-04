@@ -910,3 +910,16 @@ func (h *ArticleHandler) ProxyOutlineAttachment(c *gin.Context) {
 	c.Header("Cache-Control", "public, max-age=3600")
 	c.Data(http.StatusOK, contentType, body)
 }
+
+func (h *ArticleHandler) GetPublicArticle(id string) (*Article, bool) {
+	articles, err := h.getPublicArticles()
+	if err != nil {
+		return nil, false
+	}
+	for i := range articles {
+		if articles[i].ID == id {
+			return &articles[i], true
+		}
+	}
+	return nil, false
+}
