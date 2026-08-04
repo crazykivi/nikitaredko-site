@@ -192,6 +192,7 @@ const md = new MarkdownIt({
 });
 
 const blockTypes = ["warning", "info", "success", "danger", "tip", "note"];
+const structuralBlocks = ["stats", "timeline", "stack"];
 
 blockTypes.forEach((blockType) => {
   md.use(markdownItContainer, blockType, {
@@ -200,10 +201,10 @@ blockTypes.forEach((blockType) => {
     },
     render: (tokens: any[], idx: number) => {
       if (tokens[idx].nesting === 1) {
+        const showTitle = !structuralBlocks.includes(blockType);
         const title = blockType.charAt(0).toUpperCase() + blockType.slice(1);
-        return `<div class="custom-block ${blockType}">
-  <p class="custom-block-title">${title}</p>
-`;
+        const titleHtml = showTitle ? `<p class="custom-block-title">${title}</p>\n` : '';
+        return `<div class="custom-block ${blockType}">\n${titleHtml}`;
       } else {
         return "</div>\n";
       }
