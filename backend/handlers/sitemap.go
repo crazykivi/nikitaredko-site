@@ -74,12 +74,23 @@ func (h *ArticleHandler) GetSitemap(c *gin.Context) {
 		ChangeFreq: "daily",
 		Priority:   "1.0",
 	})
-
 	urls = append(urls, SitemapURL{
 		Loc:        baseURL + "/articles",
 		LastMod:    time.Now().UTC().Format("2006-01-02"),
 		ChangeFreq: "daily",
 		Priority:   "0.9",
+	})
+	urls = append(urls, SitemapURL{
+		Loc:        baseURL + "/about",
+		LastMod:    time.Now().UTC().Format("2006-01-02"),
+		ChangeFreq: "monthly",
+		Priority:   "0.7",
+	})
+	urls = append(urls, SitemapURL{
+		Loc:        baseURL + "/uses",
+		LastMod:    time.Now().UTC().Format("2006-01-02"),
+		ChangeFreq: "monthly",
+		Priority:   "0.6",
 	})
 
 	type articleEntry struct {

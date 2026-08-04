@@ -67,6 +67,7 @@ func main() {
 	cacheManager := cache.New()
 	articleHandler := handlers.NewArticleHandler(cacheManager)
 	usesHandler := handlers.NewUsesHandler(articleHandler, cacheManager)
+	aboutHandler := handlers.NewAboutHandler(articleHandler, cacheManager)
 
 	api := r.Group("/api")
 	{
@@ -79,6 +80,7 @@ func main() {
 		api.GET("/rss.xml", articleHandler.GetRSS)
 		api.GET("/sitemap.xml", articleHandler.GetSitemap)
 		api.GET("/uses", usesHandler.GetUses)
+		api.GET("/about", aboutHandler.GetAbout)
 
 		// ПРОКСИ ДЛЯ КАРТИНОК
 		api.GET("/attachments.redirect", articleHandler.ProxyOutlineAttachment)

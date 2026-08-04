@@ -39,6 +39,12 @@ const updateTheme = () => {
         >
           Статьи
         </router-link>
+        <router-link 
+          to="/about" 
+          class="text-sm font-medium text-muted hover:text-foreground transition-colors"
+        >
+          О себе
+        </router-link>
         
         <button 
           @click="toggleTheme"

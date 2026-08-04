@@ -21,17 +21,26 @@ var (
 	reOgImage  = regexp.MustCompile(`<meta property="og:image" content="[^"]*"[^>]*/?>`)
 )
 
+var staticPagesSEO = map[string][2]string{
+	"/about": {"Обо мне | Nikita Redko", "Кто я такой: карьерный путь, технологии и факты."},
+	"/uses":  {"Uses | Nikita Redko", "Моё рабочее место: железо, софт и инструменты."},
+}
+
 func (h *ArticleHandler) ServeFrontend(c *gin.Context) {
 	body, err := os.ReadFile("./dist/index.html")
 	if err != nil {
 		c.Status(http.StatusNotFound)
 		return
 	}
-	if strings.HasPrefix(c.Request.URL.Path, "/articles/") {
-		id := strings.TrimPrefix(c.Request.URL.Path, "/articles/")
+
+	path := c.Request.URL.Path
+	if strings.HasPrefix(path, "/articles/") {
+		id := strings.TrimPrefix(path, "/articles/")
 		if article, ok := h.GetPublicArticle(id); ok {
 			body = h.injectArticleSEO(body, article, c)
 		}
+	} else if meta, ok := staticPagesSEO[path]; ok {
+		body = injectStaticSEO(body, meta, c)
 	}
 
 	c.Data(http.StatusOK, "text/html; charset=utf-8", body)
@@ -59,7 +68,7 @@ func (h *ArticleHandler) injectArticleSEO(htmlBody []byte, a *Article, c *gin.Co
 	s = reOgDesc.ReplaceAllString(s, `<meta property="og:description" content="`+esc(desc)+`" />`)
 	s = reOgURL.ReplaceAllString(s, `<meta property="og:url" content="`+esc(pageURL)+`" />`)
 	s = reOgType.ReplaceAllString(s, `<meta property="og:type" content="article" />`)
-	s = reOgImage.ReplaceAllString(s, `<meta property="og:image" content="`+esc(scheme+"://"+host+"/cover.png")+`" />`)
+	s = reOgImage.ReplaceAllString(s, `<meta property="og:image" content="`+esc(scheme+"://"+host+"/favicon.svg")+`" />`)
 
 	ld, _ := json.Marshal(map[string]interface{}{
 		"@context":         "https://schema.org",
@@ -72,6 +81,23 @@ func (h *ArticleHandler) injectArticleSEO(htmlBody []byte, a *Article, c *gin.Co
 	})
 	s = strings.Replace(s, "</head>",
 		"<script type=\"application/ld+json\">"+string(ld)+"</script>\n</head>", 1)
+
+	return []byte(s)
+}
+
+func injectStaticSEO(htmlBody []byte, meta [2]string, c *gin.Context) []byte {
+	scheme := "http"
+	if c.Request.TLS != nil || c.GetHeader("X-Forwarded-Proto") == "https" {
+		scheme = "https"
+	}
+	pageURL := scheme + "://" + c.Request.Host + c.Request.URL.Path
+
+	s := string(htmlBody)
+	s = reTitle.ReplaceAllString(s, "<title>"+html.EscapeString(meta[0])+"</title>")
+	s = reMetaDesc.ReplaceAllString(s, `<meta name="description" content="`+html.EscapeString(meta[1])+`" />`)
+	s = reOgTitle.ReplaceAllString(s, `<meta property="og:title" content="`+html.EscapeString(meta[0])+`" />`)
+	s = reOgDesc.ReplaceAllString(s, `<meta property="og:description" content="`+html.EscapeString(meta[1])+`" />`)
+	s = reOgURL.ReplaceAllString(s, `<meta property="og:url" content="`+html.EscapeString(pageURL)+`" />`)
 
 	return []byte(s)
 }

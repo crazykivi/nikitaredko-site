@@ -62,6 +62,42 @@ export interface UsesResponse {
   lastUpdated: string
 }
 
+export interface CareerStage {
+  period: string
+  role: string
+  company: string
+  description: string
+  highlights: string[]
+  current: boolean
+  type: string  
+}
+
+export interface StackItem {
+  name: string
+  description: string
+  url?: string
+}
+
+export interface StackGroup {
+  id: string
+  title: string
+  description: string
+  items: StackItem[]
+}
+
+export interface AboutFact {
+  value: string
+  label: string
+}
+
+export interface AboutResponse {
+  intro: string
+  facts: AboutFact[]
+  career: CareerStage[]
+  stack: StackGroup[]
+  lastUpdated: string
+}
+
 async function request<T>(endpoint: string, signal?: AbortSignal): Promise<T> {
   startLoading()
   try {
@@ -97,6 +133,10 @@ export async function searchArticles(query: string, signal?: AbortSignal): Promi
 
 export async function getUses(signal?: AbortSignal): Promise<UsesResponse> {
   return request<UsesResponse>('/uses', signal)
+}
+
+export async function getAbout(signal?: AbortSignal): Promise<AboutResponse> {
+  return request<AboutResponse>('/about', signal)
 }
 
 export async function getArticlesFeed(
