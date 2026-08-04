@@ -141,7 +141,7 @@ onActivated(() => {
 
     <div v-else-if="error" class="text-center py-20">
       <p class="text-red-500">{{ error }}</p>
-      <p class="text-muted mt-2">Проверьте, что бекенд запущен</p>
+      <p class="text-muted mt-2">Сервер временно недоступен. Мы уже чиним проблему, попробуйте обновить страницу через минуту</p>
     </div>
 
     <div v-else-if="total === 0" class="text-center py-20">
