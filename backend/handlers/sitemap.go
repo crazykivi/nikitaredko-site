@@ -93,7 +93,7 @@ func (h *ArticleHandler) GetSitemap(c *gin.Context) {
 			continue
 		}
 		coll, ok := collectionsMap[doc.CollectionID]
-		if !ok || !h.isCollectionAllowedByName(coll.Name) {
+		if !ok || !h.isCollectionAllowed(coll.Name) {
 			continue
 		}
 		articles = append(articles, articleEntry{

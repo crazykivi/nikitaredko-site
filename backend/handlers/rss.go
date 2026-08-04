@@ -85,7 +85,7 @@ func (h *ArticleHandler) GetRSS(c *gin.Context) {
 			continue
 		}
 		coll, ok := collectionsMap[doc.CollectionID]
-		if !ok || !h.isCollectionAllowedByName(coll.Name) {
+		if !ok || !h.isCollectionAllowed(coll.Name) {
 			continue
 		}
 		article := h.mapToArticle(doc, coll.Name, 0)

@@ -1,10 +1,11 @@
 package cache
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 	"os"
+
+	json "github.com/goccy/go-json"
 
 	"github.com/gin-gonic/gin"
 )

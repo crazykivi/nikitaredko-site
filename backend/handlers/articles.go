@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -14,6 +13,10 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
+
+	json "github.com/goccy/go-json"
+	"golang.org/x/sync/singleflight"
 
 	"github.com/gin-gonic/gin"
 
@@ -23,29 +26,13 @@ import (
 var ErrOutlineNotFound = errors.New("outline resource not found")
 
 type ArticleHandler struct {
-	outlineURL         string
-	apiKey             string
-	allowedCollections []string
-	cache              *cache.Cache
-}
-
-func NewArticleHandler(cacheManager *cache.Cache) *ArticleHandler {
-	allowedCollections := []string{}
-	if collections := os.Getenv("OUTLINE_ALLOWED_COLLECTIONS"); collections != "" {
-		for _, c := range strings.Split(collections, ",") {
-			trimmed := strings.TrimSpace(c)
-			if trimmed != "" {
-				allowedCollections = append(allowedCollections, trimmed)
-			}
-		}
-	}
-
-	return &ArticleHandler{
-		outlineURL:         os.Getenv("OUTLINE_API_URL"),
-		apiKey:             os.Getenv("OUTLINE_API_KEY"),
-		allowedCollections: allowedCollections,
-		cache:              cacheManager,
-	}
+	outlineURL            string
+	apiKey                string
+	allowedCollectionsMap map[string]struct{}
+	allowAllCollections   bool
+	cache                 *cache.Cache
+	httpClient            *http.Client
+	sfGroup               singleflight.Group
 }
 
 type OutlineResponse struct {
@@ -108,6 +95,12 @@ type FeedResponse struct {
 	Limit    int       `json:"limit"`
 }
 
+type AttachmentCache struct {
+	Body        []byte
+	ContentType string
+	Headers     map[string]string
+}
+
 func (h *ArticleHandler) callOutlineAPI(endpoint string, body map[string]interface{}) (json.RawMessage, error) {
 	jsonBody, err := json.Marshal(body)
 	if err != nil {
@@ -123,8 +116,7 @@ func (h *ArticleHandler) callOutlineAPI(endpoint string, body map[string]interfa
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+h.apiKey)
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := h.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -186,18 +178,6 @@ func (h *ArticleHandler) isDraft(doc OutlineDocument) bool {
 		return true
 	}
 
-	return false
-}
-
-func (h *ArticleHandler) isCollectionAllowedByName(name string) bool {
-	if len(h.allowedCollections) == 0 {
-		return true
-	}
-	for _, allowed := range h.allowedCollections {
-		if strings.EqualFold(allowed, name) {
-			return true
-		}
-	}
 	return false
 }
 
@@ -324,7 +304,7 @@ func (h *ArticleHandler) buildArticleTree(docs []OutlineDocument, collectionsMap
 			continue
 		}
 		coll, ok := collectionsMap[doc.CollectionID]
-		if !ok || !h.isCollectionAllowedByName(coll.Name) {
+		if !ok || !h.isCollectionAllowed(coll.Name) {
 			continue
 		}
 		article := h.mapToArticle(doc, coll.Name, 0)
@@ -338,7 +318,7 @@ func (h *ArticleHandler) buildArticleTree(docs []OutlineDocument, collectionsMap
 		if _, ok := collectionsMap[doc.CollectionID]; !ok {
 			continue
 		}
-		if !h.isCollectionAllowedByName(collectionsMap[doc.CollectionID].Name) {
+		if !h.isCollectionAllowed(collectionsMap[doc.CollectionID].Name) {
 			continue
 		}
 
@@ -363,7 +343,7 @@ func (h *ArticleHandler) buildArticleTree(docs []OutlineDocument, collectionsMap
 		if _, ok := collectionsMap[doc.CollectionID]; !ok {
 			continue
 		}
-		if !h.isCollectionAllowedByName(collectionsMap[doc.CollectionID].Name) {
+		if !h.isCollectionAllowed(collectionsMap[doc.CollectionID].Name) {
 			continue
 		}
 		if doc.ParentDocumentID != nil {
@@ -391,24 +371,38 @@ func (h *ArticleHandler) fetchCollectionsMap() (map[string]OutlineCollection, er
 		log.Printf("[Cache] HIT: %s", cacheKey)
 		return cached.(map[string]OutlineCollection), nil
 	}
-	log.Printf("[Cache] MISS: %s", cacheKey)
+	result, err, _ := h.sfGroup.Do("fetch_collections", func() (interface{}, error) {
+		if cached, found := h.cache.Get(cacheKey); found {
+			log.Printf("[Cache] HIT (double-check): %s", cacheKey)
+			return cached.(map[string]OutlineCollection), nil
+		}
 
-	body := map[string]interface{}{"limit": 100}
-	data, err := h.callOutlineAPI("/api/collections.list", body)
+		log.Printf("[Cache] MISS: %s", cacheKey)
+		body := map[string]interface{}{"limit": 100}
+		data, err := h.callOutlineAPI("/api/collections.list", body)
+		if err != nil {
+			return nil, err
+		}
+
+		var collections []OutlineCollection
+		if err := json.Unmarshal(data, &collections); err != nil {
+			return nil, err
+		}
+
+		result := make(map[string]OutlineCollection)
+		for _, c := range collections {
+			result[c.ID] = c
+		}
+
+		h.cache.Set(cacheKey, result)
+		return result, nil
+	})
+
 	if err != nil {
 		return nil, err
 	}
-	var collections []OutlineCollection
-	if err := json.Unmarshal(data, &collections); err != nil {
-		return nil, err
-	}
-	result := make(map[string]OutlineCollection)
-	for _, c := range collections {
-		result[c.ID] = c
-	}
 
-	h.cache.Set(cacheKey, result)
-	return result, nil
+	return result.(map[string]OutlineCollection), nil
 }
 
 func (h *ArticleHandler) fetchAllDocs() ([]OutlineDocument, error) {
@@ -417,20 +411,32 @@ func (h *ArticleHandler) fetchAllDocs() ([]OutlineDocument, error) {
 		log.Printf("[Cache] HIT: %s", cacheKey)
 		return cached.([]OutlineDocument), nil
 	}
-	log.Printf("[Cache] MISS: %s", cacheKey)
-	body := map[string]interface{}{"limit": 100}
-	data, err := h.callOutlineAPI("/api/documents.list", body)
+	result, err, _ := h.sfGroup.Do("fetch_docs", func() (interface{}, error) {
+		if cached, found := h.cache.Get(cacheKey); found {
+			log.Printf("[Cache] HIT (double-check): %s", cacheKey)
+			return cached.([]OutlineDocument), nil
+		}
+
+		log.Printf("[Cache] MISS: %s", cacheKey)
+		body := map[string]interface{}{"limit": 100}
+		data, err := h.callOutlineAPI("/api/documents.list", body)
+		if err != nil {
+			return nil, err
+		}
+
+		var docs []OutlineDocument
+		if err := json.Unmarshal(data, &docs); err != nil {
+			return nil, err
+		}
+
+		h.cache.Set(cacheKey, docs)
+		return docs, nil
+	})
+
 	if err != nil {
 		return nil, err
 	}
-
-	var docs []OutlineDocument
-	if err := json.Unmarshal(data, &docs); err != nil {
-		return nil, err
-	}
-
-	h.cache.Set(cacheKey, docs)
-	return docs, nil
+	return result.([]OutlineDocument), nil
 }
 
 func (h *ArticleHandler) ListCollections(c *gin.Context) {
@@ -451,7 +457,7 @@ func (h *ArticleHandler) ListCollections(c *gin.Context) {
 
 	filtered := []OutlineCollection{}
 	for _, coll := range collectionsMap {
-		if h.isCollectionAllowedByName(coll.Name) {
+		if h.isCollectionAllowed(coll.Name) {
 			filtered = append(filtered, coll)
 		}
 	}
@@ -537,7 +543,7 @@ func (h *ArticleHandler) ListArticlesStructured(c *gin.Context) {
 		if _, ok := collectionsMap[doc.CollectionID]; !ok {
 			continue
 		}
-		if !h.isCollectionAllowedByName(collectionsMap[doc.CollectionID].Name) {
+		if !h.isCollectionAllowed(collectionsMap[doc.CollectionID].Name) {
 			continue
 		}
 		collectionDocs[doc.CollectionID] = append(collectionDocs[doc.CollectionID], doc)
@@ -545,7 +551,7 @@ func (h *ArticleHandler) ListArticlesStructured(c *gin.Context) {
 
 	result := []CollectionWithArticles{}
 	for _, coll := range collectionsMap {
-		if !h.isCollectionAllowedByName(coll.Name) {
+		if !h.isCollectionAllowed(coll.Name) {
 			continue
 		}
 		docs := collectionDocs[coll.ID]
@@ -636,7 +642,7 @@ func (h *ArticleHandler) canServeDocument(doc OutlineDocument) (bool, string, er
 
 	collectionsMap, err := h.fetchCollectionsMap()
 	if err != nil {
-		if len(h.allowedCollections) > 0 {
+		if !h.allowAllCollections {
 			return false, "", err
 		}
 		return true, "", nil
@@ -644,16 +650,26 @@ func (h *ArticleHandler) canServeDocument(doc OutlineDocument) (bool, string, er
 
 	coll, ok := collectionsMap[doc.CollectionID]
 	if !ok {
-		if len(h.allowedCollections) > 0 {
+		if !h.allowAllCollections {
 			return false, "", nil
 		}
 		return true, "", nil
 	}
 
-	if len(h.allowedCollections) > 0 && !h.isCollectionAllowedByName(coll.Name) {
+	if !h.isCollectionAllowed(coll.Name) {
 		return false, "", nil
 	}
+
 	return true, coll.Name, nil
+}
+
+func hasTag(tags []string, target string) bool {
+	for _, t := range tags {
+		if t == target {
+			return true
+		}
+	}
+	return false
 }
 
 func (h *ArticleHandler) SearchArticles(c *gin.Context) {
@@ -663,12 +679,7 @@ func (h *ArticleHandler) SearchArticles(c *gin.Context) {
 		return
 	}
 
-	collectionsMap, err := h.fetchCollectionsMap()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch collections"})
-		return
-	}
-	docs, err := h.fetchAllDocs()
+	allArticles, err := h.getPublicArticles()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch articles"})
 		return
@@ -677,54 +688,84 @@ func (h *ArticleHandler) SearchArticles(c *gin.Context) {
 	queryLower := strings.ToLower(query)
 	var results []Article
 
-	for _, doc := range docs {
-		if h.isHidden(doc) {
-			continue
-		}
-		coll, ok := collectionsMap[doc.CollectionID]
-		if !ok || !h.isCollectionAllowedByName(coll.Name) {
-			continue
-		}
+	for _, art := range allArticles {
 
-		titleMatch := strings.Contains(strings.ToLower(doc.Title), queryLower)
-		contentMatch := strings.Contains(strings.ToLower(doc.Text), queryLower) ||
-			strings.Contains(strings.ToLower(doc.Content), queryLower)
+		titleMatch := strings.Contains(strings.ToLower(art.Title), queryLower)
+		contentMatch := strings.Contains(strings.ToLower(art.Content), queryLower)
 
 		if titleMatch || contentMatch {
-			article := h.mapToArticle(doc, coll.Name, 0)
-			article.Content = ""
+			res := art
+			res.Content = ""
+			res.Tags = make([]string, len(art.Tags))
+			copy(res.Tags, art.Tags)
 			if titleMatch {
-				article.Tags = append(article.Tags, "title-match")
+				res.Tags = append(res.Tags, "title-match")
 			}
-			results = append(results, article)
+			results = append(results, res)
 		}
 	}
 
 	sort.Slice(results, func(i, j int) bool {
-		iTitleMatch := false
-		jTitleMatch := false
-		for _, tag := range results[i].Tags {
-			if tag == "title-match" {
-				iTitleMatch = true
-				break
-			}
-		}
-		for _, tag := range results[j].Tags {
-			if tag == "title-match" {
-				jTitleMatch = true
-				break
-			}
-		}
-		if iTitleMatch && !jTitleMatch {
+		iTitle := hasTag(results[i].Tags, "title-match")
+		jTitle := hasTag(results[j].Tags, "title-match")
+		if iTitle && !jTitle {
 			return true
 		}
-		if !iTitleMatch && jTitleMatch {
+		if !iTitle && jTitle {
 			return false
 		}
 		return results[i].CreatedAt > results[j].CreatedAt
 	})
 
 	c.JSON(http.StatusOK, results)
+}
+
+func (h *ArticleHandler) getPublicArticles() ([]Article, error) {
+	cacheKey := "public_articles_processed"
+
+	if cached, found := h.cache.Get(cacheKey); found {
+		return cached.([]Article), nil
+	}
+
+	result, err, _ := h.sfGroup.Do("public_articles", func() (interface{}, error) {
+		if cached, found := h.cache.Get(cacheKey); found {
+			return cached.([]Article), nil
+		}
+
+		collectionsMap, err := h.fetchCollectionsMap()
+		if err != nil {
+			return nil, err
+		}
+		docs, err := h.fetchAllDocs()
+		if err != nil {
+			return nil, err
+		}
+
+		articles := make([]Article, 0, len(docs))
+		for _, doc := range docs {
+			if h.isHidden(doc) {
+				continue
+			}
+			coll, ok := collectionsMap[doc.CollectionID]
+			if !ok || !h.isCollectionAllowed(coll.Name) {
+				continue
+			}
+			art := h.mapToArticle(doc, coll.Name, 0)
+			articles = append(articles, art)
+		}
+		sort.Slice(articles, func(i, j int) bool {
+			return articles[i].CreatedAt > articles[j].CreatedAt
+		})
+
+		h.cache.Set(cacheKey, articles)
+		return articles, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return result.([]Article), nil
 }
 
 func (h *ArticleHandler) GetArticlesFeed(c *gin.Context) {
@@ -740,42 +781,22 @@ func (h *ArticleHandler) GetArticlesFeed(c *gin.Context) {
 	if limit < 1 || limit > 100 {
 		limit = 10
 	}
-
-	collectionsMap, err := h.fetchCollectionsMap()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch collections"})
-		return
-	}
-	docs, err := h.fetchAllDocs()
+	allArticles, err := h.getPublicArticles()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch articles"})
 		return
 	}
 
-	var flatArticles []Article
-	for _, doc := range docs {
-		if h.isHidden(doc) {
+	var feedArticles []Article
+	for _, art := range allArticles {
+		if collectionID != "" && art.CollectionID != collectionID {
 			continue
 		}
-		coll, ok := collectionsMap[doc.CollectionID]
-		if !ok || !h.isCollectionAllowedByName(coll.Name) {
-			continue
-		}
-		if collectionID != "" && doc.CollectionID != collectionID {
-			continue
-		}
-
-		article := h.mapToArticle(doc, coll.Name, 0)
-		article.Content = ""
-		flatArticles = append(flatArticles, article)
+		art.Content = ""
+		feedArticles = append(feedArticles, art)
 	}
 
-	sort.Slice(flatArticles, func(i, j int) bool {
-		return flatArticles[i].CreatedAt > flatArticles[j].CreatedAt
-	})
-
-	total := len(flatArticles)
-
+	total := len(feedArticles)
 	start := (page - 1) * limit
 	end := start + limit
 	if start > total {
@@ -785,12 +806,107 @@ func (h *ArticleHandler) GetArticlesFeed(c *gin.Context) {
 		end = total
 	}
 
-	pagedArticles := flatArticles[start:end]
-
 	c.JSON(http.StatusOK, FeedResponse{
-		Articles: pagedArticles,
+		Articles: feedArticles[start:end],
 		Total:    total,
 		Page:     page,
 		Limit:    limit,
 	})
+}
+
+func NewArticleHandler(cacheManager *cache.Cache) *ArticleHandler {
+	allowedMap := make(map[string]struct{})
+	if collections := os.Getenv("OUTLINE_ALLOWED_COLLECTIONS"); collections != "" {
+		for _, c := range strings.Split(collections, ",") {
+			trimmed := strings.TrimSpace(c)
+			if trimmed != "" {
+				allowedMap[strings.ToLower(trimmed)] = struct{}{}
+			}
+		}
+	}
+
+	httpClient := &http.Client{
+		Timeout: 15 * time.Second,
+		Transport: &http.Transport{
+			MaxIdleConns:        100,
+			MaxIdleConnsPerHost: 20,
+			MaxConnsPerHost:     50,
+			IdleConnTimeout:     90 * time.Second,
+			DisableCompression:  false,
+			TLSHandshakeTimeout: 5 * time.Second,
+		},
+	}
+
+	return &ArticleHandler{
+		outlineURL:            os.Getenv("OUTLINE_API_URL"),
+		apiKey:                os.Getenv("OUTLINE_API_KEY"),
+		allowedCollectionsMap: allowedMap,
+		allowAllCollections:   len(allowedMap) == 0,
+		cache:                 cacheManager,
+		httpClient:            httpClient,
+	}
+}
+
+func (h *ArticleHandler) isCollectionAllowed(name string) bool {
+	if h.allowAllCollections {
+		return true
+	}
+	_, ok := h.allowedCollectionsMap[strings.ToLower(name)]
+	return ok
+}
+
+func (h *ArticleHandler) ProxyOutlineAttachment(c *gin.Context) {
+	id := c.Query("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing id parameter"})
+		return
+	}
+
+	cacheKey := "attachment_" + id
+	if cached, found := h.cache.Get(cacheKey); found {
+		data := cached.(*AttachmentCache)
+		for k, v := range data.Headers {
+			c.Header(k, v)
+		}
+		c.Data(http.StatusOK, data.ContentType, data.Body)
+		return
+	}
+
+	url := h.outlineURL + "/api/attachments.redirect?id=" + id
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+h.apiKey)
+
+	resp, err := h.httpClient.Do(req)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": "Failed to fetch attachment"})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		c.Status(resp.StatusCode)
+		return
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read response"})
+		return
+	}
+
+	contentType := resp.Header.Get("Content-Type")
+	h.cache.Set(cacheKey, &AttachmentCache{
+		Body:        body,
+		ContentType: contentType,
+		Headers: map[string]string{
+			"Cache-Control": "public, max-age=3600",
+		},
+	})
+
+	c.Header("Cache-Control", "public, max-age=3600")
+	c.Data(http.StatusOK, contentType, body)
 }

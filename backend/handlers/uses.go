@@ -1,12 +1,13 @@
 package handlers
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 	"os"
 	"regexp"
 	"strings"
+
+	json "github.com/goccy/go-json"
 
 	"nikitaredko-backend/cache"
 
