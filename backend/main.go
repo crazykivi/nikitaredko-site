@@ -23,13 +23,7 @@ import (
 var serveStatic = flag.Bool("s", false, "Serve static files from ./dist")
 
 func main() {
-	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, using system environment variables")
-	}
-	if os.Getenv("GIN_MODE") == "release" || os.Getenv("PRODUCTION") == "true" {
-		gin.SetMode(gin.ReleaseMode)
-		gin.DefaultWriter = io.Discard
-	}
+	loadConfig()
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -138,4 +132,18 @@ func main() {
 	}
 
 	log.Println("Server exited gracefully")
+}
+
+func loadConfig() {
+	isProduction := os.Getenv("GIN_MODE") == "release" || os.Getenv("PRODUCTION") == "true"
+
+	if isProduction {
+		gin.SetMode(gin.ReleaseMode)
+		gin.DefaultWriter = io.Discard
+		return
+	}
+
+	if err := godotenv.Load(); err != nil {
+		log.Println("[Config] .env not found, using system environment variables")
+	}
 }
