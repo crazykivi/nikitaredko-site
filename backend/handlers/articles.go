@@ -33,6 +33,7 @@ type ArticleHandler struct {
 	cache                 *cache.Cache
 	httpClient            *http.Client
 	sfGroup               singleflight.Group
+	indexHTML             []byte
 }
 
 type OutlineResponse struct {
@@ -837,6 +838,14 @@ func NewArticleHandler(cacheManager *cache.Cache) *ArticleHandler {
 		},
 	}
 
+	indexHTML, err := os.ReadFile("./dist/index.html")
+	if err != nil {
+		log.Printf("[Static] Warning: index.html not found: %v", err)
+		indexHTML = []byte("<html><body>Not built</body></html>")
+	} else {
+		log.Printf("[Static] index.html cached in memory (%d bytes)", len(indexHTML))
+	}
+
 	return &ArticleHandler{
 		outlineURL:            os.Getenv("OUTLINE_API_URL"),
 		apiKey:                os.Getenv("OUTLINE_API_KEY"),
@@ -844,6 +853,7 @@ func NewArticleHandler(cacheManager *cache.Cache) *ArticleHandler {
 		allowAllCollections:   len(allowedMap) == 0,
 		cache:                 cacheManager,
 		httpClient:            httpClient,
+		indexHTML:             indexHTML,
 	}
 }
 

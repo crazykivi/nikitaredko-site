@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"html"
 	"net/http"
-	"os"
 	"regexp"
 	"strings"
 
@@ -27,11 +26,12 @@ var staticPagesSEO = map[string][2]string{
 }
 
 func (h *ArticleHandler) ServeFrontend(c *gin.Context) {
-	body, err := os.ReadFile("./dist/index.html")
-	if err != nil {
+	if len(h.indexHTML) == 0 {
 		c.Status(http.StatusNotFound)
 		return
 	}
+	body := make([]byte, len(h.indexHTML))
+	copy(body, h.indexHTML)
 
 	path := c.Request.URL.Path
 	if strings.HasPrefix(path, "/articles/") {
