@@ -370,74 +370,98 @@ func (h *ArticleHandler) fetchCollectionsMap() (map[string]OutlineCollection, er
 	cacheKey := "collections_map_raw"
 	if cached, found := h.cache.Get(cacheKey); found {
 		log.Printf("[Cache] HIT: %s", cacheKey)
-		return cached.(map[string]OutlineCollection), nil
+		m, ok := cached.(map[string]OutlineCollection)
+		if !ok {
+			log.Printf("[Cache] CORRUPTED: %s (type %T), deleting and re-fetching", cacheKey, cached)
+			h.cache.Delete(cacheKey)
+			return h.fetchCollectionsMap()
+		}
+		return m, nil
 	}
+
+	log.Printf("[Cache] MISS: %s", cacheKey)
 	result, err, _ := h.sfGroup.Do("fetch_collections", func() (interface{}, error) {
 		if cached, found := h.cache.Get(cacheKey); found {
 			log.Printf("[Cache] HIT (double-check): %s", cacheKey)
-			return cached.(map[string]OutlineCollection), nil
+			return cached, nil
 		}
 
-		log.Printf("[Cache] MISS: %s", cacheKey)
 		body := map[string]interface{}{"limit": 100}
 		data, err := h.callOutlineAPI("/api/collections.list", body)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("fetch collections from outline: %w", err)
 		}
 
 		var collections []OutlineCollection
 		if err := json.Unmarshal(data, &collections); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unmarshal collections: %w", err)
 		}
 
-		result := make(map[string]OutlineCollection)
+		m := make(map[string]OutlineCollection, len(collections))
 		for _, c := range collections {
-			result[c.ID] = c
+			m[c.ID] = c
 		}
 
-		h.cache.Set(cacheKey, result)
-		return result, nil
+		h.cache.Set(cacheKey, m)
+		log.Printf("[Cache] SET: %s (%d items)", cacheKey, len(m))
+		return m, nil
 	})
 
 	if err != nil {
 		return nil, err
 	}
 
-	return result.(map[string]OutlineCollection), nil
+	m, ok := result.(map[string]OutlineCollection)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type from singleflight: %T", result)
+	}
+	return m, nil
 }
 
 func (h *ArticleHandler) fetchAllDocs() ([]OutlineDocument, error) {
 	cacheKey := "all_docs_raw"
 	if cached, found := h.cache.Get(cacheKey); found {
 		log.Printf("[Cache] HIT: %s", cacheKey)
-		return cached.([]OutlineDocument), nil
+		docs, ok := cached.([]OutlineDocument)
+		if !ok {
+			log.Printf("[Cache] CORRUPTED: %s (type %T), deleting and re-fetching", cacheKey, cached)
+			h.cache.Delete(cacheKey)
+			return h.fetchAllDocs()
+		}
+		return docs, nil
 	}
+
+	log.Printf("[Cache] MISS: %s", cacheKey)
 	result, err, _ := h.sfGroup.Do("fetch_docs", func() (interface{}, error) {
 		if cached, found := h.cache.Get(cacheKey); found {
 			log.Printf("[Cache] HIT (double-check): %s", cacheKey)
-			return cached.([]OutlineDocument), nil
+			return cached, nil
 		}
 
-		log.Printf("[Cache] MISS: %s", cacheKey)
 		body := map[string]interface{}{"limit": 100}
 		data, err := h.callOutlineAPI("/api/documents.list", body)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("fetch docs from outline: %w", err)
 		}
 
 		var docs []OutlineDocument
 		if err := json.Unmarshal(data, &docs); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unmarshal docs: %w", err)
 		}
 
 		h.cache.Set(cacheKey, docs)
+		log.Printf("[Cache] SET: %s (%d items)", cacheKey, len(docs))
 		return docs, nil
 	})
 
 	if err != nil {
 		return nil, err
 	}
-	return result.([]OutlineDocument), nil
+	docs, ok := result.([]OutlineDocument)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type from singleflight: %T", result)
+	}
+	return docs, nil
 }
 
 func (h *ArticleHandler) ListCollections(c *gin.Context) {
