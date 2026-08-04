@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"crypto/subtle"
 	"log"
 	"net/http"
 	"os"
@@ -28,12 +29,13 @@ func (c *Cache) WebhookHandler(ctx *gin.Context) {
 	expectedSecret := os.Getenv("OUTLINE_WEBHOOK_SECRET")
 	if expectedSecret != "" {
 		secret := ctx.Query("secret")
-		if secret != expectedSecret {
-			sigHeader := ctx.GetHeader("X-Outline-Signature")
-			if sigHeader != expectedSecret && secret != expectedSecret {
-				ctx.JSON(http.StatusForbidden, gin.H{"error": "Invalid secret"})
-				return
-			}
+		sigHeader := ctx.GetHeader("X-Outline-Signature")
+
+		valid := subtle.ConstantTimeCompare([]byte(secret), []byte(expectedSecret)) == 1 ||
+			subtle.ConstantTimeCompare([]byte(sigHeader), []byte(expectedSecret)) == 1
+		if !valid {
+			ctx.JSON(http.StatusForbidden, gin.H{"error": "Invalid secret"})
+			return
 		}
 	}
 
