@@ -25,6 +25,8 @@ import (
 
 var ErrOutlineNotFound = errors.New("outline resource not found")
 
+const maxCacheCorruptionRetries = 2
+
 type ArticleHandler struct {
 	outlineURL            string
 	apiKey                string
@@ -367,23 +369,39 @@ func countAllArticles(articles []Article) int {
 }
 
 func (h *ArticleHandler) fetchCollectionsMap() (map[string]OutlineCollection, error) {
+	return h.fetchCollectionsMapSafe(0)
+}
+
+func (h *ArticleHandler) fetchCollectionsMapSafe(depth int) (map[string]OutlineCollection, error) {
 	cacheKey := "collections_map_raw"
 	if cached, found := h.cache.Get(cacheKey); found {
-		log.Printf("[Cache] HIT: %s", cacheKey)
 		m, ok := cached.(map[string]OutlineCollection)
-		if !ok {
-			log.Printf("[Cache] CORRUPTED: %s (type %T), deleting and re-fetching", cacheKey, cached)
-			h.cache.Delete(cacheKey)
-			return h.fetchCollectionsMap()
+		if ok {
+			log.Printf("[Cache] HIT: %s", cacheKey)
+			return m, nil
 		}
-		return m, nil
+		h.cache.Delete(cacheKey)
+		if depth < maxCacheCorruptionRetries {
+			log.Printf("[Cache] CORRUPTED: %s (type %T), retry %d/%d",
+				cacheKey, cached, depth+1, maxCacheCorruptionRetries)
+			return h.fetchCollectionsMapSafe(depth + 1)
+		}
+		log.Printf("[Cache] CORRUPTED: %s after %d retries, bypassing cache",
+			cacheKey, maxCacheCorruptionRetries)
+		return h.fetchCollectionsFromAPI(cacheKey)
 	}
-
 	log.Printf("[Cache] MISS: %s", cacheKey)
+	return h.fetchCollectionsFromAPI(cacheKey)
+}
+
+func (h *ArticleHandler) fetchCollectionsFromAPI(cacheKey string) (map[string]OutlineCollection, error) {
 	result, err, _ := h.sfGroup.Do("fetch_collections", func() (interface{}, error) {
 		if cached, found := h.cache.Get(cacheKey); found {
-			log.Printf("[Cache] HIT (double-check): %s", cacheKey)
-			return cached, nil
+			if m, ok := cached.(map[string]OutlineCollection); ok {
+				log.Printf("[Cache] HIT (double-check): %s", cacheKey)
+				return m, nil
+			}
+			h.cache.Delete(cacheKey)
 		}
 
 		body := map[string]interface{}{"limit": 100}
@@ -419,23 +437,41 @@ func (h *ArticleHandler) fetchCollectionsMap() (map[string]OutlineCollection, er
 }
 
 func (h *ArticleHandler) fetchAllDocs() ([]OutlineDocument, error) {
+	return h.fetchAllDocsSafe(0)
+}
+
+func (h *ArticleHandler) fetchAllDocsSafe(depth int) ([]OutlineDocument, error) {
 	cacheKey := "all_docs_raw"
 	if cached, found := h.cache.Get(cacheKey); found {
-		log.Printf("[Cache] HIT: %s", cacheKey)
 		docs, ok := cached.([]OutlineDocument)
-		if !ok {
-			log.Printf("[Cache] CORRUPTED: %s (type %T), deleting and re-fetching", cacheKey, cached)
-			h.cache.Delete(cacheKey)
-			return h.fetchAllDocs()
+		if ok {
+			log.Printf("[Cache] HIT: %s", cacheKey)
+			return docs, nil
 		}
-		return docs, nil
+
+		h.cache.Delete(cacheKey)
+		if depth < maxCacheCorruptionRetries {
+			log.Printf("[Cache] CORRUPTED: %s (type %T), retry %d/%d",
+				cacheKey, cached, depth+1, maxCacheCorruptionRetries)
+			return h.fetchAllDocsSafe(depth + 1)
+		}
+		log.Printf("[Cache] CORRUPTED: %s after %d retries, bypassing cache",
+			cacheKey, maxCacheCorruptionRetries)
+		return h.fetchDocsFromAPI(cacheKey)
 	}
 
 	log.Printf("[Cache] MISS: %s", cacheKey)
+	return h.fetchDocsFromAPI(cacheKey)
+}
+
+func (h *ArticleHandler) fetchDocsFromAPI(cacheKey string) ([]OutlineDocument, error) {
 	result, err, _ := h.sfGroup.Do("fetch_docs", func() (interface{}, error) {
 		if cached, found := h.cache.Get(cacheKey); found {
-			log.Printf("[Cache] HIT (double-check): %s", cacheKey)
-			return cached, nil
+			if docs, ok := cached.([]OutlineDocument); ok {
+				log.Printf("[Cache] HIT (double-check): %s", cacheKey)
+				return docs, nil
+			}
+			h.cache.Delete(cacheKey)
 		}
 
 		body := map[string]interface{}{"limit": 100}
@@ -747,14 +783,20 @@ func (h *ArticleHandler) SearchArticles(c *gin.Context) {
 
 func (h *ArticleHandler) getPublicArticles() ([]Article, error) {
 	cacheKey := "public_articles_processed"
-
 	if cached, found := h.cache.Get(cacheKey); found {
-		return cached.([]Article), nil
+		if articles, ok := cached.([]Article); ok {
+			return articles, nil
+		}
+		log.Printf("[Cache] CORRUPTED: %s (type %T), deleting", cacheKey, cached)
+		h.cache.Delete(cacheKey)
 	}
 
 	result, err, _ := h.sfGroup.Do("public_articles", func() (interface{}, error) {
 		if cached, found := h.cache.Get(cacheKey); found {
-			return cached.([]Article), nil
+			if articles, ok := cached.([]Article); ok {
+				return articles, nil
+			}
+			h.cache.Delete(cacheKey)
 		}
 
 		collectionsMap, err := h.fetchCollectionsMap()
@@ -789,8 +831,12 @@ func (h *ArticleHandler) getPublicArticles() ([]Article, error) {
 	if err != nil {
 		return nil, err
 	}
+	articles, ok := result.([]Article)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type from singleflight in getPublicArticles: %T", result)
+	}
 
-	return result.([]Article), nil
+	return articles, nil
 }
 
 func (h *ArticleHandler) GetArticlesFeed(c *gin.Context) {
@@ -898,12 +944,14 @@ func (h *ArticleHandler) ProxyOutlineAttachment(c *gin.Context) {
 
 	cacheKey := "attachment_" + id
 	if cached, found := h.cache.Get(cacheKey); found {
-		data := cached.(*AttachmentCache)
-		for k, v := range data.Headers {
-			c.Header(k, v)
+		if data, ok := cached.(*AttachmentCache); ok {
+			for k, v := range data.Headers {
+				c.Header(k, v)
+			}
+			c.Data(http.StatusOK, data.ContentType, data.Body)
+			return
 		}
-		c.Data(http.StatusOK, data.ContentType, data.Body)
-		return
+		h.cache.Delete(cacheKey)
 	}
 
 	url := h.outlineURL + "/api/attachments.redirect?id=" + id
