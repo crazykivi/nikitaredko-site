@@ -461,7 +461,7 @@ onUnmounted(() => {
     </div>
 
     <div v-else-if="error" class="text-center py-20">
-      <p class="text-red-500">{{ error }}</p>
+      <p class="text-muted mt-2">Не удалось загрузить данные. Попробуйте обновить страницу.</p>
     </div>
 
     <article v-else-if="article" class="animate-fade-in max-w-4xl mx-auto">

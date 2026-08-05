@@ -52,11 +52,10 @@ useHead({
         </div>
       </div>
       <div v-else-if="error" class="text-center py-20">
-        <p class="text-red-500 mb-2">Не удалось загрузить страницу</p>
-        <p class="text-muted text-sm">{{ error }}</p>
+        <p class="text-muted mt-2">Не удалось загрузить данные. Попробуйте обновить страницу.</p>
         <p class="text-muted/60 text-xs mt-4">
-          Проверьте, что в Outline создан документ с заголовком «Uses»
-          или прописан <code class="font-mono bg-muted/30 px-1 py-0.5 rounded">USES_DOCUMENT_ID</code> в .env
+          Возможно, что в Outline ещё не создан документ с заголовком «Uses»
+          или не прописан <code class="font-mono bg-muted/30 px-1 py-0.5 rounded">USES_DOCUMENT_ID</code> в .env
         </p>
       </div>
       <div v-else-if="categories.length === 0" class="text-center py-20">
