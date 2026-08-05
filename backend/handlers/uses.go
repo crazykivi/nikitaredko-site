@@ -4,10 +4,12 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"regexp"
 	"strings"
 
 	json "github.com/goccy/go-json"
+	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/text"
 
 	"nikitaredko-backend/cache"
 
@@ -111,14 +113,10 @@ func parseUsesMarkdown(content string) []UsesCategory {
 	var currentCategory *UsesCategory
 	var currentItem *UsesItem
 
-	lines := strings.Split(content, "\n")
-
-	reH2 := regexp.MustCompile(`^##\s+(.+)$`)
-	reH3 := regexp.MustCompile(`^###\s+(.+)$`)
-	reURL := regexp.MustCompile(`^https?://\S+$`)
-	reAngleURLLine := regexp.MustCompile(`^<(https?://[^>]+)>\.?$`)
-	reAngleURL := regexp.MustCompile(`<(https?://[^>]+)>`)
-	reMdLink := regexp.MustCompile(`\[([^\]]*)\]\((https?://[^)\s]+)[^)]*\)`)
+	md := goldmark.New()
+	reader := text.NewReader([]byte(content))
+	doc := md.Parser().Parse(reader)
+	source := []byte(content)
 
 	flushItem := func() {
 		if currentItem != nil && currentCategory != nil {
@@ -135,79 +133,64 @@ func parseUsesMarkdown(content string) []UsesCategory {
 		}
 	}
 
-	extractInlineURL := func(s string) (string, string) {
-		url := ""
-		if m := reMdLink.FindStringSubmatch(s); m != nil {
-			url = m[2]
-			s = strings.Replace(s, m[0], m[1], 1)
+	ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if !entering {
+			return ast.WalkContinue, nil
 		}
-		for {
-			m := reAngleURL.FindStringSubmatch(s)
-			if m == nil {
-				break
-			}
-			if url == "" {
-				url = m[1]
-			}
-			s = strings.Replace(s, m[0], "", 1)
-		}
-		return url, strings.Join(strings.Fields(s), " ")
-	}
-
-	for _, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		if trimmed == "" {
-			continue
-		}
-
-		h2Match := reH2.FindStringSubmatch(trimmed)
-		h3Match := reH3.FindStringSubmatch(trimmed)
-		angleURLMatch := reAngleURLLine.FindStringSubmatch(trimmed)
-		isPlainURL := reURL.MatchString(trimmed)
-
-		switch {
-		case h2Match != nil:
-			flushCategory()
-			id := strings.ToLower(strings.ReplaceAll(h2Match[1], " ", "-"))
-			currentCategory = &UsesCategory{
-				ID:    id,
-				Title: h2Match[1],
-				Items: []UsesItem{},
-			}
-
-		case h3Match != nil:
-			flushItem()
-			if currentCategory != nil {
-				currentItem = &UsesItem{Name: h3Match[1]}
-			}
-
-		case currentItem != nil && isPlainURL:
-			if currentItem.URL == "" {
-				currentItem.URL = trimmed
-			}
-
-		case currentItem != nil && angleURLMatch != nil:
-			if currentItem.URL == "" {
-				currentItem.URL = angleURLMatch[1]
-			}
-
-		case currentCategory != nil && currentItem == nil && currentCategory.Description == "":
-			_, clean := extractInlineURL(trimmed)
-			currentCategory.Description = clean
-
-		case currentItem != nil:
-			url, clean := extractInlineURL(trimmed)
-			if url != "" && currentItem.URL == "" {
-				currentItem.URL = url
-			}
-			if clean != "" {
-				if currentItem.Description != "" {
-					currentItem.Description += " "
+		switch v := n.(type) {
+		case *ast.Heading:
+			switch v.Level {
+			case 1:
+				return ast.WalkSkipChildren, nil
+			case 2:
+				flushCategory()
+				title := renderNodeText(v, source)
+				currentCategory = &UsesCategory{
+					ID:    strings.ToLower(strings.ReplaceAll(title, " ", "-")),
+					Title: title,
+					Items: []UsesItem{},
 				}
-				currentItem.Description += clean
+				return ast.WalkSkipChildren, nil
+			case 3:
+				flushItem()
+				if currentCategory != nil {
+					currentItem = &UsesItem{
+						Name: renderNodeText(v, source),
+					}
+				}
+				return ast.WalkSkipChildren, nil
 			}
+		case *ast.Paragraph, *ast.TextBlock:
+			if _, isListItem := n.Parent().(*ast.ListItem); isListItem {
+				return ast.WalkSkipChildren, nil
+			}
+
+			url := findFirstURL(v, source)
+			cleanText := renderNodeTextSkipAutoLinks(v, source)
+
+			switch {
+			case currentCategory != nil && currentItem == nil:
+				if currentCategory.Description != "" {
+					currentCategory.Description += " "
+				}
+				currentCategory.Description += cleanText
+
+			case currentItem != nil:
+				if url != "" && currentItem.URL == "" {
+					currentItem.URL = url
+				}
+				if cleanText != "" {
+					if currentItem.Description != "" {
+						currentItem.Description += " "
+					}
+					currentItem.Description += cleanText
+				}
+			}
+			return ast.WalkSkipChildren, nil
 		}
-	}
+
+		return ast.WalkContinue, nil
+	})
 
 	flushCategory()
 	return categories

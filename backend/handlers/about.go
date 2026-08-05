@@ -1,14 +1,17 @@
 package handlers
 
 import (
+	"bytes"
 	"log"
 	"net/http"
 	"os"
-	"regexp"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	json "github.com/goccy/go-json"
+	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/text"
 
 	"nikitaredko-backend/cache"
 )
@@ -119,16 +122,6 @@ func (h *AboutHandler) GetAbout(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-var (
-	reAboutH2    = regexp.MustCompile(`^##\s+(.+)$`)
-	reAboutH3    = regexp.MustCompile(`^###\s+(.+)$`)
-	reAboutList  = regexp.MustCompile(`^[-*]\s+(.+)$`)
-	reAboutBold  = regexp.MustCompile(`^\*\*(.+?)\*\*`)
-	reAboutLink  = regexp.MustCompile(`^\[([^\]]+)\]\((https?://[^)\s]+)[^)]*\)`)
-	reInlineLink = regexp.MustCompile(`\[([^\]]+)\]\([^)]*\)`)
-	reMarkdown   = regexp.MustCompile(`[\*_` + "`" + `~]`)
-)
-
 var typeRules = map[string][]string{
 	"work":       {"work", "job", "работ", "служба"},
 	"pet":        {"pet", "пет", "проект", "personal", "инди", "свои"},
@@ -144,9 +137,12 @@ func parseAboutMarkdown(content string) AboutResponse {
 	resp.Career = []CareerStage{}
 	resp.Stack = []StackGroup{}
 
-	lines := strings.Split(content, "\n")
+	md := goldmark.New()
+	reader := text.NewReader([]byte(content))
+	doc := md.Parser().Parse(reader)
+	source := []byte(content)
 	section := ""
-	var introLines []string
+	var introBuf bytes.Buffer
 	var currentStage *CareerStage
 	var currentGroup *StackGroup
 
@@ -163,88 +159,184 @@ func parseAboutMarkdown(content string) AboutResponse {
 		}
 	}
 
-	for _, line := range lines {
-		trimmed := strings.TrimSpace(line)
-
-		if strings.HasPrefix(trimmed, "# ") {
-			continue
+	ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if !entering {
+			return ast.WalkContinue, nil
 		}
 
-		if m := reAboutH2.FindStringSubmatch(trimmed); m != nil {
-			flushStage()
-			flushGroup()
-			title := strings.ToLower(m[1])
-			switch {
-			case strings.Contains(title, "карьер") || strings.Contains(title, "career") || strings.Contains(title, "опыт"):
-				section = "career"
-			case strings.Contains(title, "стек") || strings.Contains(title, "stack") || strings.Contains(title, "технолог") || strings.Contains(title, "навык") || strings.Contains(title, "skill"):
-				section = "stack"
-			case strings.Contains(title, "факт") || strings.Contains(title, "fact") || strings.Contains(title, "цифр"):
-				section = "facts"
-			default:
-				section = "other"
-			}
-			continue
-		}
-
-		if m := reAboutH3.FindStringSubmatch(trimmed); m != nil {
-			switch section {
-			case "career":
+		switch v := n.(type) {
+		case *ast.Heading:
+			switch v.Level {
+			case 1:
+				return ast.WalkSkipChildren, nil
+			case 2:
 				flushStage()
-				currentStage = parseCareerHeader(m[1])
-			case "stack":
 				flushGroup()
-				currentGroup = &StackGroup{
-					ID:    strings.ToLower(strings.ReplaceAll(m[1], " ", "-")),
-					Title: m[1],
-					Items: []StackItem{},
+				title := strings.ToLower(renderNodeText(v, source))
+				switch {
+				case strings.Contains(title, "карьер") || strings.Contains(title, "career") || strings.Contains(title, "опыт"):
+					section = "career"
+				case strings.Contains(title, "стек") || strings.Contains(title, "stack") || strings.Contains(title, "технолог") || strings.Contains(title, "навык") || strings.Contains(title, "skill"):
+					section = "stack"
+				case strings.Contains(title, "факт") || strings.Contains(title, "fact") || strings.Contains(title, "цифр"):
+					section = "facts"
+				default:
+					section = "other"
 				}
+				return ast.WalkSkipChildren, nil
+
+			case 3:
+				txt := renderNodeText(v, source)
+				switch section {
+				case "career":
+					flushStage()
+					currentStage = parseCareerHeader(txt)
+				case "stack":
+					flushGroup()
+					currentGroup = &StackGroup{
+						ID:    strings.ToLower(strings.ReplaceAll(txt, " ", "-")),
+						Title: txt,
+						Items: []StackItem{},
+					}
+				}
+				return ast.WalkSkipChildren, nil
 			}
-			continue
-		}
 
-		if trimmed == "" {
-			continue
-		}
-
-		if m := reAboutList.FindStringSubmatch(trimmed); m != nil {
-			itemText := m[1]
+		case *ast.ListItem:
 			switch section {
 			case "career":
 				if currentStage != nil {
-					currentStage.Highlights = append(currentStage.Highlights, cleanInline(itemText))
+					currentStage.Highlights = append(currentStage.Highlights, renderNodeText(v, source))
 				}
 			case "stack":
 				if currentGroup != nil {
-					currentGroup.Items = append(currentGroup.Items, parseStackItem(itemText))
+					if p := getFirstParagraph(v); p != nil {
+						currentGroup.Items = append(currentGroup.Items, extractStackItem(p, source))
+					}
 				}
 			case "facts":
-				resp.Facts = append(resp.Facts, parseFact(itemText))
+				if p := getFirstParagraph(v); p != nil {
+					resp.Facts = append(resp.Facts, extractFact(p, source))
+				}
 			}
-			continue
+			return ast.WalkSkipChildren, nil
+
+		case *ast.Paragraph, *ast.TextBlock:
+			if _, isListItem := n.Parent().(*ast.ListItem); isListItem {
+				return ast.WalkSkipChildren, nil
+			}
+
+			switch section {
+			case "":
+				introBuf.WriteString(renderNodeText(v, source))
+				introBuf.WriteString("\n")
+			case "career":
+				if currentStage != nil {
+					if currentStage.Description != "" {
+						currentStage.Description += " "
+					}
+					currentStage.Description += renderNodeText(v, source)
+				}
+			case "stack":
+				if currentGroup != nil && currentGroup.Description == "" {
+					currentGroup.Description = renderNodeText(v, source)
+				}
+			}
+
+			return ast.WalkSkipChildren, nil
 		}
 
-		switch section {
-		case "":
-			introLines = append(introLines, trimmed)
-		case "career":
-			if currentStage != nil {
-				if currentStage.Description != "" {
-					currentStage.Description += " "
-				}
-				currentStage.Description += cleanInline(trimmed)
-			}
-		case "stack":
-			if currentGroup != nil && currentGroup.Description == "" {
-				currentGroup.Description = cleanInline(trimmed)
-			}
-		}
-	}
+		return ast.WalkContinue, nil
+	})
 	flushStage()
 	flushGroup()
 
-	resp.Intro = strings.Join(introLines, "\n")
+	resp.Intro = strings.TrimSpace(introBuf.String())
 	return resp
+}
+
+func extractStackItem(n ast.Node, source []byte) StackItem {
+	item := StackItem{}
+	var descBuilder strings.Builder
+	foundName := false
+
+	separators := []struct {
+		str string
+		len int
+	}{
+		{" — ", 3},
+		{" - ", 3},
+		{" : ", 3},
+		{"—", 1},
+	}
+
+	for c := n.FirstChild(); c != nil; c = c.NextSibling() {
+		if !foundName {
+			if link, ok := c.(*ast.Link); ok {
+				item.Name = renderNodeText(link, source)
+				item.URL = string(link.Destination)
+				foundName = true
+				continue
+			}
+			if emp, ok := c.(*ast.Emphasis); ok && emp.Level == 2 {
+				item.Name = renderNodeText(emp, source)
+				foundName = true
+				continue
+			}
+
+			txt := renderNodeText(c, source)
+			sepFound := false
+			for _, sep := range separators {
+				if idx := strings.Index(txt, sep.str); idx > 0 {
+					item.Name = strings.TrimSpace(txt[:idx])
+					descBuilder.WriteString(txt[idx+sep.len:])
+					foundName = true
+					sepFound = true
+					break
+				}
+			}
+
+			if !sepFound {
+				descBuilder.WriteString(txt)
+			}
+			continue
+		}
+		descBuilder.WriteString(renderNodeText(c, source))
+	}
+
+	if !foundName {
+		item.Name = strings.TrimSpace(descBuilder.String())
+		descBuilder.Reset()
+	}
+
+	desc := descBuilder.String()
+	desc = strings.TrimLeft(desc, " —-:")
+	item.Description = strings.TrimSpace(desc)
+
+	return item
+}
+
+func extractFact(n ast.Node, source []byte) AboutFact {
+	fact := AboutFact{}
+	var descBuilder strings.Builder
+	foundValue := false
+
+	for c := n.FirstChild(); c != nil; c = c.NextSibling() {
+		if !foundValue {
+			if emp, ok := c.(*ast.Emphasis); ok && emp.Level == 2 {
+				fact.Value = renderNodeText(emp, source)
+				foundValue = true
+				continue
+			}
+		}
+		descBuilder.WriteString(renderNodeText(c, source))
+	}
+
+	desc := descBuilder.String()
+	desc = strings.TrimLeft(desc, " —-:")
+	fact.Label = strings.TrimSpace(desc)
+
+	return fact
 }
 
 func parseCareerHeader(header string) *CareerStage {
@@ -281,13 +373,8 @@ func parseCareerHeader(header string) *CareerStage {
 	return stage
 }
 
-func stripMarkdown(s string) string {
-	return strings.ToLower(reMarkdown.ReplaceAllString(s, ""))
-}
-
 func normalizeStageType(s string) string {
-	clean := stripMarkdown(s)
-
+	clean := strings.ToLower(s)
 	for typeName, patterns := range typeRules {
 		for _, pattern := range patterns {
 			if strings.Contains(clean, pattern) {
@@ -295,7 +382,6 @@ func normalizeStageType(s string) string {
 			}
 		}
 	}
-
 	if clean == "" {
 		return ""
 	}
@@ -303,8 +389,7 @@ func normalizeStageType(s string) string {
 }
 
 func guessStageType(stage *CareerStage) string {
-	text := stripMarkdown(stage.Role + " " + stage.Company)
-
+	text := strings.ToLower(stage.Role + " " + stage.Company)
 	for typeName, patterns := range typeRules {
 		for _, pattern := range patterns {
 			if strings.Contains(text, pattern) {
@@ -312,48 +397,5 @@ func guessStageType(stage *CareerStage) string {
 			}
 		}
 	}
-
 	return "work"
-}
-
-func parseStackItem(text string) StackItem {
-	item := StackItem{}
-	rest := text
-
-	if m := reAboutLink.FindStringSubmatch(rest); m != nil {
-		item.Name = m[1]
-		item.URL = m[2]
-		rest = strings.TrimSpace(rest[len(m[0]):])
-	} else if m := reAboutBold.FindStringSubmatch(rest); m != nil {
-		item.Name = m[1]
-		rest = strings.TrimSpace(rest[len(m[0]):])
-	} else if idx := strings.IndexAny(rest, "—"); idx > 0 {
-		item.Name = strings.TrimSpace(rest[:idx])
-		rest = rest[idx:]
-	} else {
-		item.Name = strings.TrimSpace(rest)
-		rest = ""
-	}
-
-	rest = strings.TrimPrefix(rest, "—")
-	rest = strings.TrimPrefix(rest, "-")
-	rest = strings.TrimPrefix(rest, ":")
-	item.Description = cleanInline(rest)
-	return item
-}
-
-func parseFact(text string) AboutFact {
-	if m := reAboutBold.FindStringSubmatch(text); m != nil {
-		rest := strings.TrimSpace(text[len(m[0]):])
-		rest = strings.TrimPrefix(strings.TrimPrefix(rest, "—"), "-")
-		return AboutFact{Value: m[1], Label: cleanInline(rest)}
-	}
-	return AboutFact{Label: cleanInline(text)}
-}
-
-func cleanInline(s string) string {
-	s = reInlineLink.ReplaceAllString(s, "$1")
-	s = strings.ReplaceAll(s, "**", "")
-	s = strings.ReplaceAll(s, "`", "")
-	return strings.TrimSpace(s)
 }
