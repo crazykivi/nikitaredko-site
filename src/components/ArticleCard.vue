@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Article } from "../services/api";
 import MarkdownIt from "markdown-it";
+import DOMPurify from 'dompurify';
 
 defineProps<{
   article: Article;
@@ -50,7 +51,7 @@ const formatDate = (dateString: string) => {
     </h3>
     <div
       class="text-muted mb-4 line-clamp-4 excerpt-content"
-      v-html="renderExcerpt(article.excerpt)"
+      v-html="DOMPurify.sanitize(renderExcerpt(article.excerpt))"
     ></div>
     <div class="flex items-center gap-4 text-sm text-muted">
       <time>{{ formatDate(article.createdAt) }}</time>
