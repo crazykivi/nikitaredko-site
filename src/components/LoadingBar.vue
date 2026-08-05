@@ -11,26 +11,26 @@ let hideTimer: ReturnType<typeof setTimeout> | null = null
 
 const start = () => {
   if (hideTimer) clearTimeout(hideTimer)
-  
+  if (timer) clearTimeout(timer)
+  if (!isVisible.value) {
+    progress.value = 5
+  }
   isVisible.value = true
   isFadingOut.value = false
-  progress.value = 0
-  
   const increase = () => {
     if (isGlobalLoading.value) {
-      progress.value += Math.random() * 15
+      progress.value += Math.random() * 12
       if (progress.value > 90) progress.value = 90
-      timer = setTimeout(increase, 200)
+      timer = setTimeout(increase, 120)
     }
   }
-  increase()
+  timer = setTimeout(increase, 80)
 }
 
 const finish = () => {
   if (timer) clearTimeout(timer)
-  progress.value = 100
-  
   hideTimer = setTimeout(() => {
+    progress.value = 100
     isFadingOut.value = true
     setTimeout(() => {
       isVisible.value = false

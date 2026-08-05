@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import ArticlesLayout from '../views/ArticlesLayout.vue'
+import { startLoading, stopLoading } from '../utils/loading'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -51,9 +52,18 @@ const router = createRouter({
 })
 
 router.beforeEach((_to, from) => {
+  startLoading()
   if (from.name === 'articles') {
     sessionStorage.setItem('scroll_articles', window.scrollY.toString())
   }
+})
+
+router.afterEach(() => {
+  setTimeout(stopLoading, 50)
+})
+
+router.onError(() => {
+  stopLoading()
 })
 
 export default router
