@@ -177,7 +177,7 @@ const md = new MarkdownIt({
       `<span class="text-xs text-muted font-mono uppercase">${safeLang}</span>` +
       `<button ` +
       `class="copy-code-btn text-xs px-3 py-1 rounded-md bg-muted hover:bg-muted/80 text-muted-foreground transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 flex items-center gap-1"` +
-      `onclick="window.__copyCode(this)"` +
+      `type="button" ` +
       `title="Копировать код">` +
       `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">` +
       `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />` +
@@ -224,39 +224,6 @@ md.renderer.rules.heading_open = (tokens: any, idx: number, options: any, env: a
     token.attrSet('id', slugify(nextToken.content))
   }
   return defaultHeadingOpen(tokens, idx, options, env, self)
-}
-
-if (typeof window !== "undefined") {
-  (window as any).__copyCode = (button: HTMLButtonElement) => {
-    const codeBlock = button.closest(".code-block-wrapper");
-    if (!codeBlock) return;
-
-    const codeElement = codeBlock.querySelector("code");
-    if (!codeElement) return;
-
-    const code = codeElement.textContent || "";
-
-    navigator.clipboard
-      .writeText(code)
-      .then(() => {
-        const originalHTML = button.innerHTML;
-        button.innerHTML = `
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-        </svg>
-        <span>Скопировано!</span>
-      `;
-        button.classList.add("bg-green-500/20", "text-green-600");
-
-        setTimeout(() => {
-          button.innerHTML = originalHTML;
-          button.classList.remove("bg-green-500/20", "text-green-600");
-        }, 2000);
-      })
-      .catch((err) => {
-        console.error("Failed to copy:", err);
-      });
-  };
 }
 
 const loadArticle = async (id: string) => {
@@ -401,6 +368,43 @@ watch(
   }
 );
 
+const handleCopyClick = (e: MouseEvent) => {
+  const target = e.target as Element | null
+  if (!target) return
+
+  const button = target.closest('.copy-code-btn') as HTMLButtonElement | null
+  if (!button) return
+
+  const codeBlock = button.closest('.code-block-wrapper')
+  if (!codeBlock) return
+
+  const codeElement = codeBlock.querySelector('code')
+  if (!codeElement) return
+
+  const code = codeElement.textContent || ''
+
+  navigator.clipboard
+    .writeText(code)
+    .then(() => {
+      const originalHTML = button.innerHTML
+      button.innerHTML = `
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        <span>Скопировано!</span>
+      `
+      button.classList.add('bg-green-500/20', 'text-green-600')
+
+      setTimeout(() => {
+        button.innerHTML = originalHTML
+        button.classList.remove('bg-green-500/20', 'text-green-600')
+      }, 2000)
+    })
+    .catch((err) => {
+      console.error('Failed to copy:', err)
+    })
+}
+
 onMounted(async () => {
   await loadArticle(route.params.id as string);
 
@@ -417,12 +421,14 @@ onMounted(async () => {
     attributes: true,
     attributeFilter: ['class']
   })
+  document.addEventListener('click', handleCopyClick)
 });
 
 onUnmounted(() => {
   if (abortController) abortController.abort()
   if (themeObserver) themeObserver.disconnect()
   if (headingObserver) headingObserver.disconnect()
+  document.removeEventListener('click', handleCopyClick)
 });
 </script>
 
