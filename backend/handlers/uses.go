@@ -9,6 +9,7 @@ import (
 	json "github.com/goccy/go-json"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/text"
 
 	"nikitaredko-backend/cache"
@@ -113,7 +114,13 @@ func parseUsesMarkdown(content string) []UsesCategory {
 	var currentCategory *UsesCategory
 	var currentItem *UsesItem
 
-	md := goldmark.New()
+	md := goldmark.New(
+		goldmark.WithExtensions(
+			extension.NewLinkify(
+				extension.WithLinkifyAllowedProtocols([]string{"http:", "https:"}),
+			),
+		),
+	)
 	reader := text.NewReader([]byte(content))
 	doc := md.Parser().Parse(reader)
 	source := []byte(content)
