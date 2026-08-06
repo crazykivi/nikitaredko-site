@@ -17,7 +17,7 @@ type Cache struct {
 func New() *Cache {
 	ttlMinutes := 30
 	if ttl := os.Getenv("CACHE_TTL_MINUTES"); ttl != "" {
-		if v, err := strconv.Atoi(ttl); err == nil && v > 0 {
+		if v, err := strconv.Atoi(ttl); err == nil && v >= 0 {
 			ttlMinutes = v
 		}
 	}
