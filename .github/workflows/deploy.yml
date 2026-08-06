@@ -14,8 +14,52 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build-and-test:
+  test-backend:
+    name: Test Backend
     runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: backend/go.sum
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: go mod download
+
+      - name: Run tests with race detector
+        working-directory: ./backend
+        run: go test ./... -race -count=1 -v
+
+  test-frontend:
+    name: Test Frontend
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm run test
+
+  build-and-deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+    needs: [test-backend, test-frontend]
     permissions:
       contents: read
       packages: write
@@ -186,3 +230,7 @@ jobs:
             docker compose -p nikitaredko-test down --remove-orphans || true
             docker compose -p nikitaredko-prod up -d || true
             echo ">>> Test environment rolled back"
+
+    outputs:
+      deploy_status: ${{ job.status }}
+      git_tag: ${{ steps.git-info.outputs.git_tag }}
