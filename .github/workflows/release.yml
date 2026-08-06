@@ -36,34 +36,35 @@ jobs:
         run: |
           CURRENT_TAG=${{ steps.get-tag.outputs.tag }}
           PREVIOUS_TAG=$(git describe --tags --abbrev=0 ${CURRENT_TAG}^ 2>/dev/null || echo "")
-          
           echo "Previous tag: $PREVIOUS_TAG"
           echo "Current tag: $CURRENT_TAG"
-          
+
           if [ -z "$PREVIOUS_TAG" ]; then
             CHANGELOG=$(git log --pretty=format:"- %s (%h)" --reverse)
+            COMPARE_URL="https://github.com/${{ github.repository }}/commits/${CURRENT_TAG}"
           else
             CHANGELOG=$(git log ${PREVIOUS_TAG}..${CURRENT_TAG} --pretty=format:"- %s (%h)" --reverse)
+            COMPARE_URL="https://github.com/${{ github.repository }}/compare/${PREVIOUS_TAG}..${CURRENT_TAG}"
           fi
 
-          echo "changelog<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGELOG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          
-          echo "Generated changelog:"
-          echo "$CHANGELOG"
+          {
+            echo "changelog<<EOF"
+            echo "$CHANGELOG"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+          echo "compare_url=$COMPARE_URL" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.get-tag.outputs.tag }}
-          name: Release ${{ steps.get-tag.outputs.tag }}
+          name: ${{ steps.get-tag.outputs.tag }}
           body: |
             ${{ steps.changelog.outputs.changelog }}
-            
+
             ---
-            
-            **Full Changelog**: https://github.com/${{ github.repository }}/compare/$(git describe --tags --abbrev=0 ${{ steps.get-tag.outputs.tag }}^)..${{ steps.get-tag.outputs.tag }}
+            **Full Changelog**: ${{ steps.changelog.outputs.compare_url }}
           draft: false
           prerelease: false
         env:
