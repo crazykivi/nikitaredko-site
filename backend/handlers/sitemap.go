@@ -39,10 +39,14 @@ func (h *ArticleHandler) GetSitemap(c *gin.Context) {
 	cacheKey := "sitemap_feed"
 
 	if cached, found := h.cache.Get(cacheKey); found {
-		log.Printf("[Cache] HIT: %s", cacheKey)
-		c.Header("Content-Type", "application/xml; charset=utf-8")
-		c.String(http.StatusOK, cached.(string))
-		return
+		if s, ok := cached.(string); ok {
+			log.Printf("[Cache] HIT: %s", cacheKey)
+			c.Header("Content-Type", "application/xml; charset=utf-8")
+			c.String(http.StatusOK, s)
+			return
+		}
+		log.Printf("[Cache] CORRUPTED: %s (type %T), deleting", cacheKey, cached)
+		h.cache.Delete(cacheKey)
 	}
 
 	log.Printf("[Cache] MISS: %s", cacheKey)
