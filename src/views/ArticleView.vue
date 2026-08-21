@@ -12,7 +12,7 @@ import markdownItContainer from "markdown-it-container";
 import hljs from "highlight.js";
 import "highlight.js/styles/github-dark.css";
 import Giscus from '@giscus/vue';
-import DOMPurify from 'dompurify';
+import DOMPurify, { type Config as DOMPurifyConfig } from 'dompurify';
 
 const route = useRoute();
 const router = useRouter();
@@ -154,6 +154,18 @@ const nextArticle = computed(() => {
 const goToArticle = (id: string) => {
   router.push(`/articles/${id}`);
 };
+
+const purifyConfig: DOMPurifyConfig = {
+    USE_PROFILES: { html: true, svg: true, svgFilters: true },
+    FORBID_TAGS: ['style', 'form', 'input', 'button', 'textarea', 'select'],
+    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur'],
+    ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling'],
+}
+
+const renderMarkdown = (content: string): string => {
+    const raw = md.render(content)
+    return DOMPurify.sanitize(raw, purifyConfig) as unknown as string
+}
 
 const md = new MarkdownIt({
   html: true,
@@ -527,7 +539,7 @@ onUnmounted(() => {
       <div
         class="prose prose-neutral dark:prose-invert max-w-none break-words article-content"
       >
-        <div v-html="DOMPurify.sanitize(md.render(article.content || ''))"></div>
+        <div v-html="renderMarkdown(article.content || '')"></div>
       </div>
 
       <div class="mt-16 pt-8 border-t border-border">
