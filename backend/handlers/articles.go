@@ -974,9 +974,16 @@ func (h *ArticleHandler) ProxyOutlineAttachment(c *gin.Context) {
 		return
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	const maxAttachmentSize = 50 << 20 // 50 MB
+
+	limited := io.LimitReader(resp.Body, maxAttachmentSize+1)
+	body, err := io.ReadAll(limited)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read response"})
+		c.JSON(http.StatusBadGateway, gin.H{"error": "Failed to read attachment"})
+		return
+	}
+	if len(body) > maxAttachmentSize {
+		c.JSON(http.StatusGatewayTimeout, gin.H{"error": "Attachment too large"})
 		return
 	}
 

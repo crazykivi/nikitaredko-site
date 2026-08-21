@@ -39,6 +39,10 @@ func (c *Cache) WebhookHandler(ctx *gin.Context) {
 		}
 	}
 
+	const maxWebhookBodySize = 1 << 20 // 1 MB
+
+	ctx.Request.Body = http.MaxBytesReader(ctx.Writer, ctx.Request.Body, maxWebhookBodySize)
+
 	var event OutlineWebhookEvent
 	if err := ctx.ShouldBindJSON(&event); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid webhook payload"})
