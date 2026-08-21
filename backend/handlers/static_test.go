@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -215,5 +216,18 @@ func TestInjectArticleSEO(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestSEORegexMatchRealIndexHTML(t *testing.T) {
+	content, err := os.ReadFile("../../index.html")
+	if err != nil {
+		t.Skipf("index.html not found at ../../index.html, skipping: %v", err)
+	}
+
+	for _, r := range seoRegexes {
+		if !r.re.Match(content) {
+			t.Errorf("SEO regex %q does not match real index.html — update the regex or the template", r.name)
+		}
 	}
 }
