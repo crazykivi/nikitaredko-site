@@ -25,6 +25,7 @@ import (
 )
 
 var ErrOutlineNotFound = errors.New("outline resource not found")
+var reAttachmentID = regexp.MustCompile(`^[a-zA-Z0-9\-_]+$`)
 
 const maxCacheCorruptionRetries = 2
 
@@ -316,44 +317,37 @@ func (h *ArticleHandler) buildArticleTree(docs []OutlineDocument, collectionsMap
 	}
 
 	for _, doc := range docs {
-		if h.isHidden(doc) {
+		article, exists := articleMap[doc.ID]
+		if !exists || doc.ParentDocumentID == nil {
 			continue
 		}
-		if _, ok := collectionsMap[doc.CollectionID]; !ok {
-			continue
+		if parent, ok := articleMap[*doc.ParentDocumentID]; ok {
+			article.Level = parent.Level + 1
 		}
-		if !h.isCollectionAllowed(collectionsMap[doc.CollectionID].Name) {
-			continue
-		}
+	}
 
+	for _, doc := range docs {
+		article, exists := articleMap[doc.ID]
+		if !exists || doc.ParentDocumentID == nil {
+			continue
+		}
+		if parent, ok := articleMap[*doc.ParentDocumentID]; ok {
+			parent.Children = append(parent.Children, *article)
+		}
+	}
+
+	rootArticles := make([]Article, 0, len(articleMap))
+	for _, doc := range docs {
 		article, exists := articleMap[doc.ID]
 		if !exists {
 			continue
 		}
-
-		if doc.ParentDocumentID != nil {
-			if parent, ok := articleMap[*doc.ParentDocumentID]; ok {
-				article.Level = parent.Level + 1
-				parent.Children = append(parent.Children, *article)
-			}
-		}
-	}
-
-	rootArticles := make([]Article, 0)
-	for _, doc := range docs {
-		if h.isHidden(doc) {
+		if doc.ParentDocumentID == nil {
+			rootArticles = append(rootArticles, *article)
 			continue
 		}
-		if _, ok := collectionsMap[doc.CollectionID]; !ok {
-			continue
-		}
-		if !h.isCollectionAllowed(collectionsMap[doc.CollectionID].Name) {
-			continue
-		}
-		if doc.ParentDocumentID != nil {
-			continue
-		}
-		if article, ok := articleMap[doc.ID]; ok {
+		if _, parentVisible := articleMap[*doc.ParentDocumentID]; !parentVisible {
+			article.Level = 0
 			rootArticles = append(rootArticles, *article)
 		}
 	}
@@ -941,6 +935,10 @@ func (h *ArticleHandler) ProxyOutlineAttachment(c *gin.Context) {
 	id := c.Query("id")
 	if id == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing id parameter"})
+		return
+	}
+	if !reAttachmentID.MatchString(id) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid id format"})
 		return
 	}
 
