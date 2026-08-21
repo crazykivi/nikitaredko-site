@@ -156,7 +156,7 @@ const goToArticle = (id: string) => {
 };
 
 const purifyConfig: DOMPurifyConfig = {
-    USE_PROFILES: { html: true, svg: true, svgFilters: true },
+    USE_PROFILES: { html: true, svg: true },
     FORBID_TAGS: ['style', 'form', 'input', 'button', 'textarea', 'select'],
     FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur'],
     ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling'],
