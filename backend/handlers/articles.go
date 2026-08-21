@@ -914,6 +914,7 @@ func NewArticleHandler(cacheManager *cache.Cache) *ArticleHandler {
 		indexHTML = []byte("<html><body>Not built</body></html>")
 	} else {
 		log.Printf("[Static] index.html cached in memory (%d bytes)", len(indexHTML))
+		ValidateSEOTemplate(indexHTML)
 	}
 
 	return &ArticleHandler{

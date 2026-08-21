@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"html"
+	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -18,6 +19,18 @@ var (
 	reOgURL    = regexp.MustCompile(`<meta property="og:url" content="[^"]*"[^>]*/?>`)
 	reOgType   = regexp.MustCompile(`<meta property="og:type" content="[^"]*"[^>]*/?>`)
 	reOgImage  = regexp.MustCompile(`<meta property="og:image" content="[^"]*"[^>]*/?>`)
+	seoRegexes = []struct {
+		name string
+		re   *regexp.Regexp
+	}{
+		{"title", reTitle},
+		{"meta_desc", reMetaDesc},
+		{"og_title", reOgTitle},
+		{"og_desc", reOgDesc},
+		{"og_url", reOgURL},
+		{"og_type", reOgType},
+		{"og_image", reOgImage},
+	}
 )
 
 var staticPagesSEO = map[string][2]string{
@@ -44,6 +57,20 @@ func (h *ArticleHandler) ServeFrontend(c *gin.Context) {
 	}
 
 	c.Data(http.StatusOK, "text/html; charset=utf-8", body)
+}
+
+func ValidateSEOTemplate(htmlContent []byte) {
+	missing := []string{}
+	for _, r := range seoRegexes {
+		if !r.re.Match(htmlContent) {
+			missing = append(missing, r.name)
+		}
+	}
+	if len(missing) > 0 {
+		log.Printf("[SEO] WARNING: index.html missing SEO patterns: %v — regex replacement will be silently skipped for these tags", missing)
+	} else {
+		log.Printf("[SEO] index.html validated: all %d SEO patterns found", len(seoRegexes))
+	}
 }
 
 func (h *ArticleHandler) injectArticleSEO(htmlBody []byte, a *Article, c *gin.Context) []byte {
