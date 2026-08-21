@@ -1,28 +1,67 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 
-const isDark = ref(false)
+type ThemeMode = 'auto' | 'light' | 'dark'
 
-onMounted(() => {
-  isDark.value = localStorage.getItem('theme') === 'dark' || 
-    (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)
-  
-  updateTheme()
+const mode = ref<ThemeMode>('auto')
+const systemDark = ref(false)
+
+let mediaQuery: MediaQueryList | null = null
+const onSystemThemeChange = (e: MediaQueryListEvent | MediaQueryList) => {
+  systemDark.value = e.matches
+  if (mode.value === 'auto') updateTheme()
+}
+
+const effectiveDark = computed(() => {
+  if (mode.value === 'light') return false
+  if (mode.value === 'dark') return true
+  return systemDark.value
 })
 
-const toggleTheme = () => {
-  isDark.value = !isDark.value
-  localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
+const updateTheme = () => {
+  document.documentElement.classList.toggle('dark', effectiveDark.value)
+}
+
+const cycleTheme = () => {
+  const next: Record<ThemeMode, ThemeMode> = {
+    auto: 'light',
+    light: 'dark',
+    dark: 'auto',
+  }
+  mode.value = next[mode.value]
+
+  if (mode.value === 'auto') {
+    localStorage.removeItem('theme')
+  } else {
+    localStorage.setItem('theme', mode.value)
+  }
   updateTheme()
 }
 
-const updateTheme = () => {
-  if (isDark.value) {
-    document.documentElement.classList.add('dark')
+const label = computed(() => {
+  if (mode.value === 'light') return 'Светлая тема'
+  if (mode.value === 'dark') return 'Тёмная тема'
+  return 'Автоматическая тема (системная)'
+})
+
+onMounted(() => {
+  mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+  systemDark.value = mediaQuery.matches
+
+  const stored = localStorage.getItem('theme')
+  if (stored === 'light' || stored === 'dark') {
+    mode.value = stored
   } else {
-    document.documentElement.classList.remove('dark')
+    mode.value = 'auto'
   }
-}
+  updateTheme()
+
+  mediaQuery.addEventListener('change', onSystemThemeChange)
+})
+
+onUnmounted(() => {
+  mediaQuery?.removeEventListener('change', onSystemThemeChange)
+})
 </script>
 
 <template>
@@ -31,27 +70,32 @@ const updateTheme = () => {
       <router-link to="/" class="text-xl font-bold tracking-tight hover:opacity-70 transition-opacity">
       Nikita Redko
       </router-link>
-      
+
       <div class="flex items-center gap-6">
-        <router-link 
-          to="/articles" 
+        <router-link
+          to="/articles"
           class="text-sm font-medium text-muted hover:text-foreground transition-colors"
         >
           Статьи
         </router-link>
-        <router-link 
-          to="/about" 
+        <router-link
+          to="/about"
           class="text-sm font-medium text-muted hover:text-foreground transition-colors"
         >
           О себе
         </router-link>
         
-        <button 
-          @click="toggleTheme"
+        <button
+          @click="cycleTheme"
           class="p-2 rounded-lg hover:bg-border/50 transition-colors"
-          :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+          :aria-label="label"
+          :title="label"
         >
-          <svg v-if="isDark" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg v-if="mode === 'auto'" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor" />
+          </svg>
+          <svg v-else-if="mode === 'light'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
           </svg>
           <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
