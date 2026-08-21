@@ -18,6 +18,7 @@ import (
 
 	"nikitaredko-backend/cache"
 	"nikitaredko-backend/handlers"
+	"nikitaredko-backend/middleware"
 )
 
 var serveStatic = flag.Bool("s", false, "Serve static files from ./dist")
@@ -67,25 +68,34 @@ func main() {
 	usesHandler := handlers.NewUsesHandler(articleHandler, cacheManager)
 	aboutHandler := handlers.NewAboutHandler(articleHandler, cacheManager)
 
+	rlSearch := middleware.NewIPRateLimiter(30, 5)      // поиск (самое тяжелое)
+	rlWebhook := middleware.NewIPRateLimiter(60, 10)    // вебхуки от Outline
+	rlAttachment := middleware.NewIPRateLimiter(60, 10) // прокси аттачментов
+	rlRead := middleware.NewIPRateLimiter(120, 20)      // чтение статей
+	rlDefault := middleware.NewIPRateLimiter(180, 30)   // всё остальное
+
 	api := r.Group("/api")
 	{
-		api.GET("/collections", articleHandler.ListCollections)
-		api.GET("/articles", articleHandler.ListArticles)
-		api.GET("/articles/structured", articleHandler.ListArticlesStructured)
-		api.GET("/articles/:id", articleHandler.GetArticle)
-		api.GET("/articles/search", articleHandler.SearchArticles)
-		api.GET("/articles/feed", articleHandler.GetArticlesFeed)
-		api.GET("/rss.xml", articleHandler.GetRSS)
-		api.GET("/sitemap.xml", articleHandler.GetSitemap)
-		api.GET("/uses", usesHandler.GetUses)
-		api.GET("/about", aboutHandler.GetAbout)
+		// ЛЕГКИЙ ЛИМИТ
+		api.GET("/collections", rlDefault.Middleware(), articleHandler.ListCollections)
+		api.GET("/articles", rlDefault.Middleware(), articleHandler.ListArticles)
+		api.GET("/articles/structured", rlDefault.Middleware(), articleHandler.ListArticlesStructured)
+		api.GET("/articles/feed", rlDefault.Middleware(), articleHandler.GetArticlesFeed)
+		api.GET("/rss.xml", rlDefault.Middleware(), articleHandler.GetRSS)
+		api.GET("/sitemap.xml", rlDefault.Middleware(), articleHandler.GetSitemap)
+		api.GET("/uses", rlDefault.Middleware(), usesHandler.GetUses)
+		api.GET("/about", rlDefault.Middleware(), aboutHandler.GetAbout)
+		// СРЕДНИЙ ЛИМИТ
+		api.GET("/articles/:id", rlRead.Middleware(), articleHandler.GetArticle)
+		// СТРОГИЙ ЛИМИТ
+		api.GET("/articles/search", rlSearch.Middleware(), articleHandler.SearchArticles)
 
 		// ПРОКСИ ДЛЯ КАРТИНОК
-		api.GET("/attachments.redirect", articleHandler.ProxyOutlineAttachment)
+		api.GET("/attachments.redirect", rlAttachment.Middleware(), articleHandler.ProxyOutlineAttachment)
 
 		// CACHE
-		api.POST("/webhook/outline", cacheManager.WebhookHandler)
-		api.GET("/cache/health", cacheManager.HealthCheck)
+		api.POST("/webhook/outline", rlWebhook.Middleware(), cacheManager.WebhookHandler)
+		api.GET("/cache/health", rlDefault.Middleware(), cacheManager.HealthCheck)
 	}
 
 	shouldServeStatic := *serveStatic
