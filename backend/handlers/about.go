@@ -79,7 +79,7 @@ func (h *AboutHandler) GetAbout(c *gin.Context) {
 
 	if aboutDocID != "" {
 		body := map[string]interface{}{"id": aboutDocID}
-		data, err := h.articleHandler.callOutlineAPI("/api/documents.info", body)
+		data, err := h.articleHandler.callOutlineAPI(c.Request.Context(), "/api/documents.info", body)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "About page not found"})
 			return

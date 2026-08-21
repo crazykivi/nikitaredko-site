@@ -63,7 +63,7 @@ func (h *UsesHandler) GetUses(c *gin.Context) {
 
 	if usesDocID != "" {
 		body := map[string]interface{}{"id": usesDocID}
-		data, err := h.articleHandler.callOutlineAPI("/api/documents.info", body)
+		data, err := h.articleHandler.callOutlineAPI(c.Request.Context(), "/api/documents.info", body)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Uses page not found"})
 			return

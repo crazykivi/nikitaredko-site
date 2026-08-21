@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -104,14 +105,14 @@ type AttachmentCache struct {
 	Headers     map[string]string
 }
 
-func (h *ArticleHandler) callOutlineAPI(endpoint string, body map[string]interface{}) (json.RawMessage, error) {
+func (h *ArticleHandler) callOutlineAPI(ctx context.Context, endpoint string, body map[string]interface{}) (json.RawMessage, error) {
 	jsonBody, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 
 	url := h.outlineURL + endpoint
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return nil, err
 	}
@@ -405,7 +406,7 @@ func (h *ArticleHandler) fetchCollectionsFromAPI(cacheKey string) (map[string]Ou
 		}
 
 		body := map[string]interface{}{"limit": 100}
-		data, err := h.callOutlineAPI("/api/collections.list", body)
+		data, err := h.callOutlineAPI(context.Background(), "/api/collections.list", body)
 		if err != nil {
 			return nil, fmt.Errorf("fetch collections from outline: %w", err)
 		}
@@ -475,7 +476,7 @@ func (h *ArticleHandler) fetchDocsFromAPI(cacheKey string) ([]OutlineDocument, e
 		}
 
 		body := map[string]interface{}{"limit": 100}
-		data, err := h.callOutlineAPI("/api/documents.list", body)
+		data, err := h.callOutlineAPI(context.Background(), "/api/documents.list", body)
 		if err != nil {
 			return nil, fmt.Errorf("fetch docs from outline: %w", err)
 		}
@@ -648,7 +649,7 @@ func (h *ArticleHandler) GetArticle(c *gin.Context) {
 	body := map[string]interface{}{
 		"id": id,
 	}
-	data, err := h.callOutlineAPI("/api/documents.info", body)
+	data, err := h.callOutlineAPI(c.Request.Context(), "/api/documents.info", body)
 	if err != nil {
 		if errors.Is(err, ErrOutlineNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{
@@ -956,7 +957,7 @@ func (h *ArticleHandler) ProxyOutlineAttachment(c *gin.Context) {
 	}
 
 	url := h.outlineURL + "/api/attachments.redirect?id=" + id
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(c.Request.Context(), "GET", url, nil)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
 		return
