@@ -11,7 +11,9 @@ const collections = ref<CollectionWithArticles[]>([])
 const searchResults = ref<Article[]>([])
 const isSearching = ref(false)
 const expandedCollections = ref<Set<string>>(new Set())
-const isSidebarCollapsed = ref(false)
+const isSidebarCollapsed = ref(
+  typeof window !== 'undefined' && localStorage.getItem('sidebar_collapsed') === 'true',
+)
 const searchQuery = ref('')
 const searchAbortController = ref<AbortController | null>(null)
 
@@ -88,7 +90,12 @@ const selectCollection = (id: string | null) => {
 }
 
 const toggleSidebar = () => {
-    isSidebarCollapsed.value = !isSidebarCollapsed.value
+  isSidebarCollapsed.value = !isSidebarCollapsed.value
+  try {
+    localStorage.setItem('sidebar_collapsed', String(isSidebarCollapsed.value))
+  } catch {
+    // localStorage недоступен (приватный режим / переполнение) - пропуск
+  }
 }
 
 const onCollapsedCategoryClick = (id: string) => {
@@ -155,18 +162,15 @@ watch(searchQuery, (newQuery) => {
 })
 
 onMounted(async () => {
-    const collectionParam = route.query.collection as string | undefined
-    try {
-        collections.value = await getArticlesStructured()
-        for (const coll of collections.value) {
-            expandedCollections.value.add(coll.id)
-        }
-        if (collectionParam) {
-            expandedCollections.value.add(collectionParam)
-        }
-    } catch (e) {
-        console.error('Failed to load collections:', e)
+  const collectionParam = route.query.collection as string | undefined
+  try {
+    collections.value = await getArticlesStructured()
+    if (collectionParam) {
+      expandedCollections.value.add(collectionParam)
     }
+  } catch (e) {
+    console.error('Failed to load collections:', e)
+  }
 })
 
 watch(

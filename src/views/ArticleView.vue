@@ -186,17 +186,8 @@ const md = new MarkdownIt({
 
     return (
       `<div class="code-block-wrapper relative group" data-language="${safeLang}">` +
-      `<div class="code-header flex items-center justify-between px-4 py-2 bg-muted/80 border-b border-border rounded-t-lg">` +
+      `<div class="code-header justify-between flex items-center gap-3 px-4 py-2 bg-muted/80 border-b border-border rounded-t-lg">` +
       `<span class="text-xs text-muted font-mono uppercase">${safeLang}</span>` +
-      `<button ` +
-      `class="copy-code-btn text-xs px-3 py-1 rounded-md bg-muted hover:bg-muted/80 text-muted-foreground transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 flex items-center gap-1"` +
-      `type="button" ` +
-      `title="Копировать код">` +
-      `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">` +
-      `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />` +
-      `</svg>` +
-      `<span>Копировать</span>` +
-      `</button>` +
       `</div>` +
       `<pre class="!mt-0 !mb-0 !rounded-t-none"><code class="hljs language-${safeLang}">${highlighted}</code></pre>` +
       `</div>`
@@ -274,7 +265,10 @@ const loadArticle = async (id: string) => {
 
     window.scrollTo({ top: 0, behavior: "smooth" });
 
-    nextTick(() => setupHeadingObserver())
+    nextTick(() => {
+      setupHeadingObserver()
+      injectCopyButtons()
+    })
   } catch (e: any) {
     if (e.name === "AbortError") return;
     error.value = e instanceof Error ? e.message : "Failed to load article";
@@ -418,6 +412,21 @@ const handleCopyClick = (e: MouseEvent) => {
     })
 }
 
+const COPY_BTN_ICON = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>`
+
+const injectCopyButtons = () => {
+  document.querySelectorAll('.code-header').forEach((header) => {
+    if (header.querySelector('.copy-code-btn')) return
+    const btn = document.createElement('button')
+    btn.type = 'button'
+    btn.title = 'Копировать код'
+    btn.className =
+      'copy-code-btn text-xs px-3 py-1 rounded-md text-muted hover:text-foreground transition-all flex items-center gap-1'
+    btn.innerHTML = `${COPY_BTN_ICON}<span>Копировать</span>`
+    header.appendChild(btn)
+  })
+}
+
 onMounted(async () => {
   await loadArticle(route.params.id as string);
 
@@ -483,7 +492,7 @@ onUnmounted(() => {
       <p class="text-muted mt-2">Не удалось загрузить данные. Попробуйте обновить страницу.</p>
     </div>
 
-    <article v-else-if="article" class="animate-fade-in max-w-4xl mx-auto">
+    <article v-else-if="article" class="animate-fade-in max-w-6xl mx-auto">
       <div class="mb-8">
         <button
           v-if="article.collectionName && article.collectionId"
