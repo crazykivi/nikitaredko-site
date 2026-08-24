@@ -2,10 +2,15 @@ package cache
 
 import (
 	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -139,5 +144,29 @@ func TestHealthCheck(t *testing.T) {
 	}
 	if !bytes.Contains(w.Body.Bytes(), []byte(`"enabled":true`)) {
 		t.Error("health check should show enabled=true")
+	}
+}
+
+func TestVerifyOutlineSignature(t *testing.T) {
+	secret := "webhook-secret"
+	body := []byte(`{"id":"evt-1","name":"documents.update"}`)
+	ts := strconv.FormatInt(time.Now().UnixMilli(), 10)
+
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(ts + "."))
+	mac.Write(body)
+	goodSig := "t=" + ts + ",s=" + hex.EncodeToString(mac.Sum(nil))
+
+	if !verifyOutlineSignature(goodSig, body, secret) {
+		t.Error("valid signature must be accepted")
+	}
+	if verifyOutlineSignature(goodSig, []byte(`{"tampered":true}`), secret) {
+		t.Error("tampered body must be rejected")
+	}
+	if verifyOutlineSignature("t=1,s=deadbeef", body, secret) {
+		t.Error("expired signature must be rejected")
+	}
+	if verifyOutlineSignature("garbage", body, secret) {
+		t.Error("malformed header must be rejected")
 	}
 }
