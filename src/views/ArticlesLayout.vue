@@ -89,6 +89,16 @@ const selectCollection = (id: string | null) => {
     }
 }
 
+const totalArticles = computed(() =>
+  collections.value.reduce((sum, c) => sum + c.articleCount, 0),
+)
+
+const selectCollectionAndCenter = (id: string | null, e: Event) => {
+  selectCollection(id)
+  const chip = e.currentTarget as HTMLElement | null
+  chip?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+}
+
 const toggleSidebar = () => {
   isSidebarCollapsed.value = !isSidebarCollapsed.value
   try {
@@ -388,6 +398,38 @@ onUnmounted(() => {
       </aside>
 
       <main class="flex-1 min-w-0">
+        <div
+          class="lg:hidden sticky top-16 z-30 -mx-4 px-4 py-3 mb-6 bg-background/90 backdrop-blur-sm border-b border-border"
+        >
+          <div class="flex gap-2 overflow-x-auto custom-scrollbar pb-1">
+            <button
+              @click="selectCollectionAndCenter(null, $event)"
+              class="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors"
+              :class="
+                !getSelectedCollectionId()
+                  ? 'bg-foreground text-background border-foreground'
+                  : 'bg-muted/10 text-muted border-border hover:text-foreground'
+              "
+            >
+              Все статьи <span class="opacity-60">{{ totalArticles }}</span>
+            </button>
+            <button
+              v-for="coll in collections"
+              :key="coll.id"
+              @click="selectCollectionAndCenter(coll.id, $event)"
+              :title="cleanCollectionName(coll.name)"
+              class="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors"
+              :class="
+                getSelectedCollectionId() === coll.id
+                  ? 'bg-foreground text-background border-foreground'
+                  : 'bg-muted/10 text-muted border-border hover:text-foreground'
+              "
+            >
+              {{ cleanCollectionName(coll.name) }}
+              <span class="opacity-60">{{ coll.articleCount }}</span>
+            </button>
+          </div>
+        </div>
         <router-view v-slot="{ Component, route }">
           <Suspense>
             <template #default>
