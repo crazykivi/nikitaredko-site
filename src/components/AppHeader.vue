@@ -44,6 +44,12 @@ const label = computed(() => {
   return 'Автоматическая тема (системная)'
 })
 
+const openCommandPalette = () => {
+  window.dispatchEvent(
+    new KeyboardEvent('keydown', { key: '/', bubbles: true, cancelable: true }),
+  )
+}
+
 onMounted(() => {
   mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
   systemDark.value = mediaQuery.matches
@@ -57,10 +63,12 @@ onMounted(() => {
   updateTheme()
 
   mediaQuery.addEventListener('change', onSystemThemeChange)
+  window.addEventListener('toggle-app-theme', cycleTheme)
 })
 
 onUnmounted(() => {
   mediaQuery?.removeEventListener('change', onSystemThemeChange)
+  window.removeEventListener('toggle-app-theme', cycleTheme)
 })
 </script>
 
@@ -71,7 +79,20 @@ onUnmounted(() => {
       Nikita Redko
       </router-link>
 
-      <div class="flex items-center gap-6">
+      <div class="flex items-center gap-4 sm:gap-6">
+        <button
+          class="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-muted hover:text-foreground hover:bg-muted/30 transition-colors border border-transparent hover:border-border"
+          @click="openCommandPalette"
+          title="Command Palette (/)"
+          type="button"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <span>Поиск</span>
+          <kbd class="ml-1 px-1 py-0.5 text-[9px] font-mono rounded border border-border text-muted/80">/</kbd>
+        </button>
+
         <router-link
           to="/articles"
           class="text-sm font-medium text-muted hover:text-foreground transition-colors"
@@ -90,6 +111,7 @@ onUnmounted(() => {
           class="p-2 rounded-lg hover:bg-border/50 transition-colors"
           :aria-label="label"
           :title="label"
+          type="button"
         >
           <svg v-if="mode === 'auto'" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="9" />

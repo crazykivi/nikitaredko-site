@@ -3,6 +3,7 @@ import AppHeader from './components/AppHeader.vue'
 import AppFooter from './components/AppFooter.vue'
 import LoadingBar from './components/LoadingBar.vue'
 import ScrollToTop from './components/ScrollToTop.vue'
+import CommandPalette from './components/CommandPalette.vue'
 </script>
 
 <template>
@@ -18,6 +19,7 @@ import ScrollToTop from './components/ScrollToTop.vue'
     </main>
     <AppFooter />
     <ScrollToTop />
+    <CommandPalette />
   </div>
 </template>
 
