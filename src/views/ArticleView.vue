@@ -23,12 +23,13 @@ const error = ref<string | null>(null);
 const allCollections = ref<CollectionWithArticles[]>([]);
 const flatArticles = ref<Article[]>([]);
 const giscusTheme = ref<'light' | 'dark'>('light')
+const copyToast = ref<{ type: 'success' | 'error' } | null>(null)
+const activeHeadingId = ref('')
 
 let abortController: AbortController | null = null;
 let themeObserver: MutationObserver | null = null
-
-const activeHeadingId = ref('')
 let headingObserver: IntersectionObserver | null = null
+let copyToastTimer: ReturnType<typeof setTimeout> | null = null
 
 const tocItems = computed((): TOCItem[] => {
   if (!article.value?.content) return []
@@ -375,6 +376,14 @@ watch(
   }
 );
 
+const showCopyToast = (type: 'success' | 'error') => {
+  copyToast.value = { type }
+  if (copyToastTimer) clearTimeout(copyToastTimer)
+  copyToastTimer = setTimeout(() => {
+    copyToast.value = null
+  }, 2500)
+}
+
 const handleCopyClick = (e: MouseEvent) => {
   const target = e.target as Element | null
   if (!target) return
@@ -392,23 +401,10 @@ const handleCopyClick = (e: MouseEvent) => {
 
   navigator.clipboard
     .writeText(code)
-    .then(() => {
-      const originalHTML = button.innerHTML
-      button.innerHTML = `
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-        </svg>
-        <span>Скопировано!</span>
-      `
-      button.classList.add('bg-green-500/20', 'text-green-600')
-
-      setTimeout(() => {
-        button.innerHTML = originalHTML
-        button.classList.remove('bg-green-500/20', 'text-green-600')
-      }, 2000)
-    })
+    .then(() => showCopyToast('success'))
     .catch((err) => {
       console.error('Failed to copy:', err)
+      showCopyToast('error')
     })
 }
 
@@ -450,6 +446,7 @@ onUnmounted(() => {
   if (abortController) abortController.abort()
   if (themeObserver) themeObserver.disconnect()
   if (headingObserver) headingObserver.disconnect()
+  if (copyToastTimer) clearTimeout(copyToastTimer)
   document.removeEventListener('click', handleCopyClick)
 });
 </script>
@@ -667,4 +664,45 @@ onUnmounted(() => {
     :items="tocItems"
     :active-id="activeHeadingId"
   />
+  <Transition name="toast">
+    <div
+      v-if="copyToast"
+      class="fixed top-12 inset-x-0 z-[9999] flex justify-center pointer-events-none"
+      role="status"
+    >
+      <div
+        class="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-border bg-background/95 backdrop-blur-sm shadow-2xl text-sm text-foreground"
+      >
+        <svg
+          v-if="copyToast.type === 'success'"
+          class="w-4 h-4 text-green-500 shrink-0"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+        <svg
+          v-else
+          class="w-4 h-4 text-red-500 shrink-0"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+        {{ copyToast.type === 'success' ? 'Копирование в буфер обмена прошло успешно!' : 'Не удалось скопировать код' }}
+      </div>
+    </div>
+  </Transition>
 </template>
