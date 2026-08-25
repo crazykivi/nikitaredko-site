@@ -4,6 +4,8 @@ import AppFooter from './components/AppFooter.vue'
 import LoadingBar from './components/LoadingBar.vue'
 import ScrollToTop from './components/ScrollToTop.vue'
 import CommandPalette from './components/CommandPalette.vue'
+import PetCompanion from './components/PetCompanion.vue'
+import { petStats } from './composables/usePet'
 </script>
 
 <template>
@@ -19,6 +21,7 @@ import CommandPalette from './components/CommandPalette.vue'
     </main>
     <AppFooter />
     <ScrollToTop />
+    <PetCompanion v-if="petStats.enabled" />
     <CommandPalette />
   </div>
 </template>

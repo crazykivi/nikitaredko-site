@@ -28,6 +28,11 @@ const router = createRouter({
       component: () => import('../views/UsesView.vue')
     },
     {
+      path: '/pet-lab',
+      name: 'pet-lab',
+      component: () => import('../views/PetLabView.vue')
+    },
+    {
       path: '/articles',
       component: ArticlesLayout,
       children: [

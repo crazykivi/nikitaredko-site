@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { getArticlesFeed, type Article } from '../services/api'
+import { petStats, togglePet } from '../composables/usePet'
 
 const router = useRouter()
 
@@ -95,6 +96,22 @@ const buildStaticCommands = (): Command[] => [
     icon: 'rss',
     action: () => window.open('/api/rss.xml', '_blank', 'noopener,noreferrer'),
   },
+  {
+    id: 'action-pet-toggle',
+    label: petStats.enabled ? 'Спрятать тамагочи' : 'Позвать тамагочи',
+    description: 'Маленький питомец живёт внизу экрана',
+    group: 'Действия',
+    icon: 'tool',
+    action: () => togglePet(),
+  },
+  {
+    id: 'action-pet-lab',
+    label: 'Пет-лаборатория',
+    description: 'Дебаг анимаций котика',
+    group: 'Действия',
+    icon: 'tool',
+    action: () => router.push('/pet-lab'),
+  }
 ]
 
 const commands = computed<Command[]>(() => {
