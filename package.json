@@ -6,12 +6,17 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
+    "build:android": "vue-tsc -b && cross-env CAPACITOR_BUILD=true VITE_CAPACITOR_BUILD=true VITE_API_URL=https://nikitaredko.ru vite build",
+    "cap:sync": "npm run build:android && npx cap sync android",
+    "cap:open": "npx cap open android",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
     "@giscus/vue": "^3.1.1",
     "@unhead/vue": "^3.1.7",
     "dompurify": "^3.4.13",
@@ -22,6 +27,8 @@
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.0",
     "@tailwindcss/typography": "^0.5.20",
     "@types/dompurify": "^3.0.5",
     "@types/markdown-it": "^14.1.2",
@@ -31,6 +38,7 @@
     "@vue/test-utils": "^2.4.11",
     "@vue/tsconfig": "^0.9.1",
     "autoprefixer": "^10.5.2",
+    "cross-env": "^10.1.0",
     "git-rev-sync": "^3.0.2",
     "happy-dom": "^20.11.1",
     "postcss": "^8.5.16",
