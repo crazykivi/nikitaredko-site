@@ -109,6 +109,9 @@ func main() {
 		if _, err := os.Stat("./dist"); err == nil {
 			r.Static("/assets", "./dist/assets")
 			r.StaticFile("/favicon.svg", "./dist/favicon.svg")
+			r.StaticFile("/robots.txt", "./dist/robots.txt")
+			r.StaticFile("/sw.js", "./dist/sw.js")
+			r.StaticFile("/manifest.webmanifest", "./dist/manifest.webmanifest")
 			r.NoRoute(articleHandler.ServeFrontend)
 			log.Println("[Static] Serving frontend from ./dist")
 		} else {
