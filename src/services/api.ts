@@ -1,5 +1,7 @@
 import { startLoading, stopLoading } from '../utils/loading'
-const API_BASE = '/api'
+const API_BASE = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : '/api'
 
 export function cleanCollectionName(name: string): string {
   return name.replace(/^collection\s+/i, '').trim()

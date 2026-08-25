@@ -1,11 +1,11 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
-
+const isCapacitorBuild = process.env.CAPACITOR_BUILD === 'true'
 export default defineConfig({
   plugins: [
     vue(),
-    VitePWA({
+    ...(isCapacitorBuild ? [] : [VitePWA({
       registerType: 'autoUpdate',
       injectRegister: null,
 
@@ -141,7 +141,7 @@ export default defineConfig({
       devOptions: {
         enabled: false
       }
-    })
+    })]),
   ],
   define: {
     __COMMIT_HASH__: JSON.stringify(process.env.VITE_GIT_COMMIT || 'unknown'),
