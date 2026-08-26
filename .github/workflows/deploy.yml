@@ -101,23 +101,48 @@ jobs:
           echo "compileSdk=android-${COMPILE_SDK}"
           sdkmanager "platforms;android-${COMPILE_SDK}"
 
-      - name: Build APK
+      - name: Build APK (signed release, fallback to debug)
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           chmod +x android/gradlew
           cd android
-          ./gradlew assembleDebug
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > app/release.keystore
+            echo ">>> Building SIGNED release APK"
+            ./gradlew assembleRelease \
+              -Pandroid.injected.signing.store.file="$PWD/app/release.keystore" \
+              -Pandroid.injected.signing.store.password="$ANDROID_KEYSTORE_PASSWORD" \
+              -Pandroid.injected.signing.key.alias="$ANDROID_KEY_ALIAS" \
+              -Pandroid.injected.signing.key.password="$ANDROID_KEY_PASSWORD"
+          else
+            echo ">>> No keystore secrets, building debug APK"
+            ./gradlew assembleDebug
+          fi
 
-      - name: Prepare artifact
+      - name: Prepare artifact + SHA-256
         run: |
           mkdir -p release
-          cp android/app/build/outputs/apk/debug/app-debug.apk \
-             "release/nikitaredko-site-${{ github.ref_name }}.apk"
+          if [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
+            SRC=android/app/build/outputs/apk/release/app-release.apk
+          else
+            SRC=android/app/build/outputs/apk/debug/app-debug.apk
+          fi
+          cp "$SRC" "release/nikitaredko-site-${{ github.ref_name }}.apk"
+          cd release
+          sha256sum "nikitaredko-site-${{ github.ref_name }}.apk" > SHA256SUMS.txt
+          cat SHA256SUMS.txt
 
       - name: Attach APK to release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          files: release/*.apk
+          files: |
+            release/*.apk
+            release/SHA256SUMS.txt
 
   build-and-deploy:
     name: Build and Deploy
