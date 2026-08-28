@@ -10,7 +10,7 @@ permissions:
 jobs:
   tag:
     runs-on: ubuntu-latest
-    if: false 
+    if: contains(github.event.head_commit.author.name, 'dependabot')
 
     steps:
       - name: Checkout
