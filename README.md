@@ -1,5 +1,3 @@
-Ниже представлен обновлённый `README.md`. Я внёс необходимые уточнения в разделы сборки и конфигурации, чтобы документация точно отражала текущий процесс деплоя и локальной разработки.
-
 # nikitaredko-site
 
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen?style=flat-square)
