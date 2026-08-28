@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Trivy — показать находки в логе
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.35.0
         with:
           scan-type: 'fs'
           scan-ref: './backend'
@@ -29,7 +29,7 @@ jobs:
           format: 'table'
 
       - name: Trivy — CRITICAL gate (backend)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.35.0
         with:
           scan-type: 'fs'
           scan-ref: './backend'
@@ -40,7 +40,7 @@ jobs:
           output: 'trivy-backend.sarif'
 
       - name: Upload report to Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         continue-on-error: true
         with:
@@ -61,7 +61,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Trivy — показать находки в логе
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.35.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
@@ -72,7 +72,7 @@ jobs:
           format: 'table'
 
       - name: Trivy — CRITICAL gate (frontend)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.35.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
@@ -84,7 +84,7 @@ jobs:
           output: 'trivy-frontend.sarif'
 
       - name: Upload report to Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         continue-on-error: true
         with:
