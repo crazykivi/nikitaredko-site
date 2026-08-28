@@ -12,7 +12,7 @@ updates:
       - "dependencies"
       - "frontend"
     commit-message:
-      prefix: "fix(deps)"
+      prefix: "fix"
       include: "scope"
     groups:
       production:
@@ -35,7 +35,7 @@ updates:
       - "dependencies"
       - "backend"
     commit-message:
-      prefix: "fix(deps)"
+      prefix: "fix"
       include: "scope"
     ignore:
       - dependency-name: "*"
@@ -54,5 +54,5 @@ updates:
       - "dependencies"
       - "ci"
     commit-message:
-      prefix: "ci(deps)"
+      prefix: "ci"
       include: "scope"
