@@ -186,15 +186,15 @@ jobs:
           target: "/opt/nikitaredko"
 
       - name: Deploy to Test Environment
-        uses: ./.github/actions/ssh-exec
+        uses: appleboy/ssh-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
         with:
-          ssh_host: ${{ secrets.SSH_HOST }}
-          ssh_user: ${{ secrets.SSH_USER }}
-          ssh_key: ${{ secrets.SSH_PRIVATE_KEY }}
-          ssh_port: ${{ secrets.SSH_PORT }}
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
           envs: GITHUB_TOKEN,GITHUB_ACTOR
           script: |
             echo ">>> Deploying test version ${{ github.ref_name }}..."
@@ -211,12 +211,12 @@ jobs:
             echo ">>> Test deployment completed"
 
       - name: Wait and Health Check Test Environment
-        uses: ./.github/actions/ssh-exec
+        uses: appleboy/ssh-action@v1
         with:
-          ssh_host: ${{ secrets.SSH_HOST }}
-          ssh_user: ${{ secrets.SSH_USER }}
-          ssh_key: ${{ secrets.SSH_PRIVATE_KEY }}
-          ssh_port: ${{ secrets.SSH_PORT }}
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
           script: |
             echo ">>> Waiting for test environment to start..."
             sleep 10
@@ -241,12 +241,12 @@ jobs:
 
       - name: Cleanup Test Environment
         if: success()
-        uses: ./.github/actions/ssh-exec
+        uses: appleboy/ssh-action@v1
         with:
-          ssh_host: ${{ secrets.SSH_HOST }}
-          ssh_user: ${{ secrets.SSH_USER }}
-          ssh_key: ${{ secrets.SSH_PRIVATE_KEY }}
-          ssh_port: ${{ secrets.SSH_PORT }}
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
           script: |
             echo ">>> Cleaning up test environment..."
             cd /opt/nikitaredko
@@ -257,15 +257,15 @@ jobs:
 
       - name: Deploy to Production
         if: success()
-        uses: ./.github/actions/ssh-exec
+        uses: appleboy/ssh-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
         with:
-          ssh_host: ${{ secrets.SSH_HOST }}
-          ssh_user: ${{ secrets.SSH_USER }}
-          ssh_key: ${{ secrets.SSH_PRIVATE_KEY }}
-          ssh_port: ${{ secrets.SSH_PORT }}
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
           envs: GITHUB_TOKEN,GITHUB_ACTOR
           script: |
             echo ">>> Deploying to production ${{ github.ref_name }}..."
@@ -287,15 +287,15 @@ jobs:
 
       - name: Rollback on Failure
         if: failure()
-        uses: ./.github/actions/ssh-exec
+        uses: appleboy/ssh-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
         with:
-          ssh_host: ${{ secrets.SSH_HOST }}
-          ssh_user: ${{ secrets.SSH_USER }}
-          ssh_key: ${{ secrets.SSH_PRIVATE_KEY }}
-          ssh_port: ${{ secrets.SSH_PORT }}
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
           envs: GITHUB_TOKEN,GITHUB_ACTOR
           script: |
             echo ">>> Deployment failed! Attempting rollback..."
