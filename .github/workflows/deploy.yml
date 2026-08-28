@@ -59,6 +59,9 @@ jobs:
   security-gate:
     name: Security Gate
     uses: ./.github/workflows/security-scan.yml
+    permissions:
+      contents: read
+      security-events: write
 
   build-apk:
     name: Build Android APK
