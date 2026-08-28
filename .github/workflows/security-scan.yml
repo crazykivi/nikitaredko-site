@@ -1,0 +1,60 @@
+name: Security Scan
+
+on:
+  pull_request:
+    branches: [main, master, develop]
+  workflow_call:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  backend-scan:
+    name: Backend (Go) — CRITICAL gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trivy — зависимости + секреты (backend)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: './backend'
+          severity: 'CRITICAL'
+          exit-code: '1'
+          ignore-unfixed: true
+          format: 'sarif'
+          output: 'trivy-backend.sarif'
+
+      - name: Upload report to Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        continue-on-error: true
+        with:
+          sarif_file: 'trivy-backend.sarif'
+
+  frontend-scan:
+    name: Frontend (Vue/TS) — CRITICAL gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trivy — зависимости + секреты (frontend)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          skip-dirs: 'backend,android'
+          severity: 'CRITICAL'
+          exit-code: '1'
+          ignore-unfixed: true
+          format: 'sarif'
+          output: 'trivy-frontend.sarif'
+
+      - name: Upload report to Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        continue-on-error: true
+        with:
+          sarif_file: 'trivy-frontend.sarif'
