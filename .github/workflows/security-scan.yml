@@ -12,9 +12,20 @@ permissions:
   security-events: write
 
 jobs:
-  backend-scan:
-    name: Backend (Go) — CRITICAL gate
+  trivy-scan:
+    name: Trivy Scan (${{ matrix.target }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - target: backend
+            scan-ref: './backend'
+            skip-dirs: ''
+            artifact-name: trivy-backend-sarif
+          - target: frontend
+            scan-ref: '.'
+            skip-dirs: 'backend,android'
+            artifact-name: trivy-frontend-sarif
     steps:
       - uses: actions/checkout@v4
 
@@ -22,78 +33,36 @@ jobs:
         uses: aquasecurity/trivy-action@v0.35.0
         with:
           scan-type: 'fs'
-          scan-ref: './backend'
+          scan-ref: ${{ matrix.scan-ref }}
+          skip-dirs: ${{ matrix.skip-dirs }}
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
           exit-code: '0'
           format: 'table'
 
-      - name: Trivy — CRITICAL gate (backend)
+      - name: Trivy — CRITICAL gate
         uses: aquasecurity/trivy-action@v0.35.0
         with:
           scan-type: 'fs'
-          scan-ref: './backend'
+          scan-ref: ${{ matrix.scan-ref }}
+          skip-dirs: ${{ matrix.skip-dirs }}
           severity: 'CRITICAL'
           exit-code: '1'
           ignore-unfixed: true
           format: 'sarif'
-          output: 'trivy-backend.sarif'
+          output: 'trivy-report.sarif'
 
       - name: Upload report to Security tab
         uses: github/codeql-action/upload-sarif@v4
         if: always()
         continue-on-error: true
         with:
-          sarif_file: 'trivy-backend.sarif'
+          sarif_file: 'trivy-report.sarif'
 
       - name: Upload SARIF artifact
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: trivy-backend-sarif
-          path: trivy-backend.sarif
-          retention-days: 7
-
-  frontend-scan:
-    name: Frontend (Vue/TS) — CRITICAL gate
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Trivy — показать находки в логе
-        uses: aquasecurity/trivy-action@v0.35.0
-        with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          skip-dirs: 'backend,android'
-          severity: 'CRITICAL,HIGH'
-          ignore-unfixed: true
-          exit-code: '0'
-          format: 'table'
-
-      - name: Trivy — CRITICAL gate (frontend)
-        uses: aquasecurity/trivy-action@v0.35.0
-        with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          skip-dirs: 'backend,android'
-          severity: 'CRITICAL'
-          exit-code: '1'
-          ignore-unfixed: true
-          format: 'sarif'
-          output: 'trivy-frontend.sarif'
-
-      - name: Upload report to Security tab
-        uses: github/codeql-action/upload-sarif@v4
-        if: always()
-        continue-on-error: true
-        with:
-          sarif_file: 'trivy-frontend.sarif'
-
-      - name: Upload SARIF artifact
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: trivy-frontend-sarif
-          path: trivy-frontend.sarif
+          name: ${{ matrix.artifact-name }}
+          path: trivy-report.sarif
           retention-days: 7
