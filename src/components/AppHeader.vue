@@ -22,20 +22,50 @@ const updateTheme = () => {
   document.documentElement.classList.toggle('dark', effectiveDark.value)
 }
 
-const cycleTheme = () => {
-  const next: Record<ThemeMode, ThemeMode> = {
-    auto: 'light',
-    light: 'dark',
-    dark: 'auto',
-  }
-  mode.value = next[mode.value]
+const cycleTheme = (e?: MouseEvent) => {
+  const apply = () => {
+    const next: Record<ThemeMode, ThemeMode> = {
+      auto: 'light',
+      light: 'dark',
+      dark: 'auto',
+    }
+    mode.value = next[mode.value]
 
-  if (mode.value === 'auto') {
-    localStorage.removeItem('theme')
-  } else {
-    localStorage.setItem('theme', mode.value)
+    if (mode.value === 'auto') {
+      localStorage.removeItem('theme')
+    } else {
+      localStorage.setItem('theme', mode.value)
+    }
+    updateTheme()
   }
-  updateTheme()
+
+  const supported =
+    typeof document.startViewTransition === 'function' &&
+    !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+  const x = e?.clientX
+  const y = e?.clientY
+
+  if (!supported || typeof x !== 'number' || typeof y !== 'number') {
+    apply()
+    return
+  }
+
+  const transition = document.startViewTransition(apply)
+
+  transition.ready.then(() => {
+    const endRadius = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y))
+    document.documentElement.animate(
+      {
+        clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${endRadius}px at ${x}px ${y}px)`],
+      },
+      {
+        duration: 400,
+        easing: 'ease-in-out',
+        pseudoElement: '::view-transition-new(root)',
+      },
+    )
+  })
 }
 
 const label = computed(() => {
@@ -50,6 +80,8 @@ const openCommandPalette = () => {
   )
 }
 
+const onToggleEvent = () => cycleTheme()
+
 onMounted(() => {
   mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
   systemDark.value = mediaQuery.matches
@@ -63,12 +95,12 @@ onMounted(() => {
   updateTheme()
 
   mediaQuery.addEventListener('change', onSystemThemeChange)
-  window.addEventListener('toggle-app-theme', cycleTheme)
+  window.addEventListener('toggle-app-theme', () => cycleTheme())
 })
 
 onUnmounted(() => {
   mediaQuery?.removeEventListener('change', onSystemThemeChange)
-  window.removeEventListener('toggle-app-theme', cycleTheme)
+  window.removeEventListener('toggle-app-theme', () => cycleTheme())
 })
 </script>
 
