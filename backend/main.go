@@ -43,7 +43,7 @@ func main() {
 		_ = r.SetTrustedProxies(proxies)
 	}
 
-	corsOrigins := []string{"http://localhost:5173", "http://localhost:3000"}
+	corsOrigins := []string{"http://localhost:5173", "http://localhost:3000", "https://localhost"}
 	if envOrigins := os.Getenv("ALLOW_CORS"); envOrigins != "" {
 		corsOrigins = []string{}
 		for _, origin := range strings.Split(envOrigins, ",") {
