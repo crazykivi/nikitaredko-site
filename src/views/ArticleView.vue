@@ -297,7 +297,7 @@ const siteName = 'Nikita Redko'
 const seoData = computed<ReactiveHead>(() => {
   const currentUrl = typeof window !== 'undefined' ? window.location.href : ''
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
-  const ogImage = `${origin}/favicon.svg`
+  const ogImage = `${origin}/api/og/${article.value?.id ?? ''}`
 
   if (!article.value) {
     return {

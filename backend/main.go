@@ -93,6 +93,9 @@ func main() {
 		// ПРОКСИ ДЛЯ КАРТИНОК
 		api.GET("/attachments.redirect", rlAttachment.Middleware(), articleHandler.ProxyOutlineAttachment)
 
+		// OG-КАРТИНКИ ДЛЯ СОЦСЕТЕЙ
+		api.GET("/og/:id", rlRead.Middleware(), articleHandler.GetOGImage)
+
 		// CACHE
 		api.POST("/webhook/outline", rlWebhook.Middleware(), cacheManager.WebhookHandler)
 		api.GET("/cache/health", rlDefault.Middleware(), cacheManager.HealthCheck)

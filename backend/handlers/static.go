@@ -95,7 +95,7 @@ func (h *ArticleHandler) injectArticleSEO(htmlBody []byte, a *Article, c *gin.Co
 	s = reOgDesc.ReplaceAllString(s, `<meta property="og:description" content="`+esc(desc)+`" />`)
 	s = reOgURL.ReplaceAllString(s, `<meta property="og:url" content="`+esc(pageURL)+`" />`)
 	s = reOgType.ReplaceAllString(s, `<meta property="og:type" content="article" />`)
-	s = reOgImage.ReplaceAllString(s, `<meta property="og:image" content="`+esc(scheme+"://"+host+"/favicon.svg")+`" />`)
+	s = reOgImage.ReplaceAllString(s, `<meta property="og:image" content="`+esc(scheme+"://"+host+"/api/og/"+a.ID)+`" />`)
 
 	ld, _ := json.Marshal(map[string]interface{}{
 		"@context":         "https://schema.org",
