@@ -80,7 +80,7 @@ const openCommandPalette = () => {
   )
 }
 
-const onToggleEvent = () => cycleTheme()
+const handleToggleThemeEvent = () => cycleTheme()
 
 onMounted(() => {
   mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
@@ -95,12 +95,12 @@ onMounted(() => {
   updateTheme()
 
   mediaQuery.addEventListener('change', onSystemThemeChange)
-  window.addEventListener('toggle-app-theme', () => cycleTheme())
+  window.addEventListener('toggle-app-theme', handleToggleThemeEvent)
 })
 
 onUnmounted(() => {
   mediaQuery?.removeEventListener('change', onSystemThemeChange)
-  window.removeEventListener('toggle-app-theme', () => cycleTheme())
+  window.removeEventListener('toggle-app-theme', handleToggleThemeEvent)
 })
 </script>
 
