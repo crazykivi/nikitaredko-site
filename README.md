@@ -29,6 +29,7 @@
 - **Комментарии:** интеграция с GitHub Discussions через Giscus.
 - **Адаптивная типографика:** кастомизированный дизайн на базе Tailwind CSS.
 - **Строгая типизация:** 100% TypeScript на фронтенде и строгая валидация на бэкенде.
+- **Security-заголовки:** CSP, HSTS, Permissions-Policy и др. (цель — A+ на [observatory.mozilla.org](https://developer.mozilla.org/en-US/observatory)) — при этом полностью совместимы с мобильным приложением (см. [ниже](#-почему-security-заголовки-не-мешают-мобильному-приложению)).
 
 ## 🛠 Технологический стек
 
@@ -196,7 +197,7 @@ SITE_DESCRIPTION=Статьи о разработке, проектах и мы�
 
 # Server & HTTP
 PORT=8080
-ALLOW_CORS=http://localhost:5173,http://localhost:3000,https://your-domain.com
+ALLOW_CORS=http://localhost:5173,http://localhost:3000,https://localhost,https://your-domain.com
 TRUSTED_PROXIES=127.0.0.1
 
 # Раздавать ли собранную статику из ./dist через Go-сервер
@@ -216,6 +217,27 @@ GIN_MODE=release
 2. Синхронизирует ассеты с нативным проектом.
 3. Компилирует APK.
 4. Прикрепляет артефакт к релизу.
+
+### Почему security-заголовки не мешают мобильному приложению?
+
+Изначально security-заголовки были убраны из-за опасений сломать APK. На практике это было не нужно: **WebView Capacitor грузит HTML локально из APK** (`webDir: dist`), а с сервера приложение только делает `fetch` за JSON. Поэтому:
+
+- **CSP, HSTS, X-Frame-Options и т.п.** браузер применяет к документам, пришедшим с сервера. Локально загруженный в WebView HTML эти заголовки просто не получает — им нечего применять.
+- Мобильному приложению для общения с API нужен был не отказ от заголовков, а **CORS-разрешение**: origin WebView Capacitor (`https://localhost`, т.к. `androidScheme: "https"`) добавлен в дефолтный список CORS в `backend/main.go` и может задаваться через `ALLOW_CORS` в `.env`.
+
+**Как это работает:**
+
+| Заголовок | Сайт (браузер) | Приложение (APK) |
+| :--- | :--- | :--- |
+| CSP / X-Frame-Options / Permissions-Policy | применяются | WebView получает локальный HTML — заголовки не приходят |
+| HSTS | применяется (только по HTTPS) | не приходит, т.к. WebView не грузит страницы с сервера |
+| CORS | ограничивает кросс-доменные запросы | origin `https://localhost` явно разрешён |
+
+> ⚠️ **Примечание:** раньше заголовки были отключены полностью — это не лучшая практика: сайт оставался без защиты от XSS-инъекций, кликджекинга и MIME-sniffing. Сейчас включён полный набор, а совместимость с APK решена правильным способом — через CORS.
+
+### Проверка
+
+Сканер [Mozilla HTTP Observatory](https://developer.mozilla.org/en-US/observatory) оценивает набор заголовков сайта. Запуск сканирования: `https://developer.mozilla.org/en-US/observatory/analyze?host=nikitaredko.ru`. Скриншот результата добавляется в этот раздел.
 
 ## 📄 Лицензия
 
