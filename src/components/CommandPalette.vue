@@ -10,6 +10,27 @@ const query = ref('')
 const selectedIndex = ref(0)
 const inputRef = ref<HTMLInputElement | null>(null)
 const listRef = ref<HTMLElement | null>(null)
+const paletteRef = ref<HTMLElement | null>(null)
+
+let previouslyFocused: HTMLElement | null = null
+
+const restoreFocus = () => {
+  const el = previouslyFocused
+  previouslyFocused = null
+  if (el && el.isConnected) {
+    el.focus({ preventScroll: true })
+    return
+  }
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur()
+  }
+}
+
+const onGlobalFocusIn = (e: FocusEvent) => {
+  if (!isOpen.value) return
+  if (e.target instanceof HTMLElement && paletteRef.value?.contains(e.target)) return
+  inputRef.value?.focus({ preventScroll: true })
+}
 
 const recentArticles = ref<Article[]>([])
 const articlesLoaded = ref(false)
@@ -136,6 +157,10 @@ watch(flatFiltered, () => {
 })
 
 const open = () => {
+  previouslyFocused =
+    document.activeElement instanceof HTMLElement && document.activeElement !== document.body
+      ? document.activeElement
+      : null
   isOpen.value = true
   query.value = ''
   selectedIndex.value = 0
@@ -151,6 +176,7 @@ const close = () => {
     articlesAbort.abort()
     articlesAbort = null
   }
+  restoreFocus()
 }
 
 const execute = (cmd: Command) => {
@@ -301,10 +327,12 @@ const loadArticles = async () => {
 
 onMounted(() => {
   window.addEventListener('keydown', handleGlobalKeydown)
+  document.addEventListener('focusin', onGlobalFocusIn)
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleGlobalKeydown)
+  document.removeEventListener('focusin', onGlobalFocusIn)
   if (articlesAbort) articlesAbort.abort()
 })
 </script>
@@ -313,6 +341,7 @@ onUnmounted(() => {
   <Transition name="palette">
     <div
       v-if="isOpen"
+      ref="paletteRef"
       class="fixed inset-0 z-[9998] flex items-start justify-center pt-[15vh] px-4"
       @click.self="close"
     >
