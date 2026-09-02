@@ -32,7 +32,7 @@ func main() {
 	}
 
 	r := gin.New()
-	r.Use(gin.Logger(), gin.Recovery())
+	r.Use(gin.Logger(), gin.Recovery(), middleware.SecurityHeaders())
 
 	_ = r.SetTrustedProxies(nil)
 	if trustedProxies := os.Getenv("TRUSTED_PROXIES"); trustedProxies != "" {
