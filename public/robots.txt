@@ -1,10 +1,11 @@
 User-agent: *
 Allow: /
 
-Disallow: /api/
 Allow: /api/articles/
 Allow: /api/og/
 Allow: /api/rss.xml
 Allow: /api/sitemap.xml
 Allow: /api/cache/health
+Disallow: /api/
+
 Sitemap: https://nikitaredko.ru/api/sitemap.xml
