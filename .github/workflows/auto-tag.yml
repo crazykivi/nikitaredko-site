@@ -51,15 +51,16 @@ jobs:
               repo: context.repo.repo,
               workflow_id: 'deploy.yml',
               ref: '${{ steps.tag.outputs.new_tag }}',
-              inputs: {}
+              inputs: { prerelease: 'true' }
             });
 
       - name: Summary
         run: |
-          echo "## Security patch released" >> $GITHUB_STEP_SUMMARY
+          echo "## Security patch released (pre-release)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| | |" >> $GITHUB_STEP_SUMMARY
           echo "|---|---|" >> $GITHUB_STEP_SUMMARY
           echo "| **Commit** | ${{ github.event.head_commit.message }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Tag** | \`${{ steps.tag.outputs.new_tag }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Release** | Pre-release + full pipeline (tests → APK → Docker → deploy) |" >> $GITHUB_STEP_SUMMARY
           echo "| **Trigger** | Dependabot auto-merge |" >> $GITHUB_STEP_SUMMARY
