@@ -237,7 +237,8 @@ GIN_MODE=release
 
 ### Проверка
 
-Сканер [Mozilla HTTP Observatory](https://developer.mozilla.org/en-US/observatory) оценивает набор заголовков сайта. Запуск сканирования: `https://developer.mozilla.org/en-US/observatory/analyze?host=nikitaredko.ru`. Скриншот результата добавляется в этот раздел.
+Сканер [Mozilla HTTP Observatory](https://developer.mozilla.org/en-US/observatory) оценивает набор заголовков сайта. Запуск сканирования: `https://developer.mozilla.org/en-US/observatory/analyze?host=nikitaredko.ru`.
+![Mozilla Observatory: рейтинг A+](.github/docs/observatory-a-plus.png)
 
 ## 📄 Лицензия
 
