@@ -82,7 +82,6 @@ func main() {
 		api.GET("/articles/structured", rlDefault.Middleware(), articleHandler.ListArticlesStructured)
 		api.GET("/articles/feed", rlDefault.Middleware(), articleHandler.GetArticlesFeed)
 		api.GET("/rss.xml", rlDefault.Middleware(), articleHandler.GetRSS)
-		api.GET("/sitemap.xml", rlDefault.Middleware(), articleHandler.GetSitemap)
 		api.GET("/uses", rlDefault.Middleware(), usesHandler.GetUses)
 		api.GET("/about", rlDefault.Middleware(), aboutHandler.GetAbout)
 		// СРЕДНИЙ ЛИМИТ
@@ -100,6 +99,8 @@ func main() {
 		api.POST("/webhook/outline", rlWebhook.Middleware(), cacheManager.WebhookHandler)
 		api.GET("/cache/health", rlDefault.Middleware(), cacheManager.HealthCheck)
 	}
+	r.GET("/sitemap.xml", rlDefault.Middleware(), articleHandler.GetSitemap)
+	r.HEAD("/sitemap.xml", rlDefault.Middleware(), articleHandler.GetSitemap)
 
 	shouldServeStatic := *serveStatic
 	if !shouldServeStatic {
