@@ -100,12 +100,37 @@ go tool cover -html=coverage.out          # Визуализация покры�
 
 ### Продакшен сборка
 ```bash
-npm run build
+npm run build:local   # Сборка dist/ + автоматическое копирование в backend/dist/
 ```
-*Результат сборки будет в папке `dist/`.*
+*Или через Makefile: `make build`. Результат — собранный фронтенд в `backend/dist/`, готовый к запуску через Go-сервер (`make serve`).*
 
-> **Важно (Ручной шаг):** В текущей версии проекта для бесшовного запуска приложения через Go-сервер необходимо вручную переместить (или скопировать) собранную папку `dist/` внутрь директории `backend/` (чтобы получилось `backend/dist/`). 
-> *Примечание: В будущих версиях этот процесс будет автоматизирован через `Makefile` или расширенные `npm scripts`.*
+## Makefile
+
+Все основные команды продублированы в `Makefile` — см. `make help`:
+
+| Команда | Что делает |
+| :--- | :--- |
+| `make help` | Показать список всех таргетов (выполняется по умолчанию) |
+| `make install` | `npm ci` + `go mod download` |
+| `make dev-frontend` | Vite dev-сервер (`http://localhost:5173`) |
+| `make dev-backend` | Go API-сервер (`http://localhost:8080`) |
+| `make build` | Сборка фронтенда + копирование `dist/` → `backend/dist/` |
+| `make copy-dist` | Копирование `dist/` → `backend/dist/` без пересборки |
+| `make serve` | Сборка всего + запуск Go-сервера (API + статика) |
+| `make test` | Тесты фронтенда (Vitest) и бэкенда (`go test`) |
+| `make test-frontend` | Только тесты фронтенда |
+| `make test-backend` | Только тесты бэкенда |
+| `make test-coverage` | Тесты фронтенда с отчётом покрытия |
+| `make fmt` | `gofmt` + `go vet` |
+| `make clean` | Удалить `dist/`, `backend/dist/` и собранный бинарь |
+| `make docker-build` | Сборка Docker-образа |
+| `make docker-up` | Запуск через Docker Compose |
+| `make docker-down` | Остановка контейнера |
+| `make android` | Добавить android-платформу (`npx cap add android`, пропускается, если уже добавлена) |
+| `make apk` | Сборка Android-ассетов + `cap sync` (автоматически добавит платформу) |
+| `make cap-open` | Открыть Android-проект в Android Studio (автоматически добавит платформу) |
+
+> Копирование выполняется кроссплатформенно через Node-скрипт (`scripts/copy-dist.mjs`), поэтому работает одинаково на Windows, Linux и macOS.
 
 ### Сборка для Android
 ```bash
@@ -140,6 +165,8 @@ npm run cap:open      # Открытие в Android Studio
 │   ├── router/          # Маршрутизация
 │   ├── composables/     # Хуки и логика
 │   └── assets/          # Стили и статика фронтенда
+├── scripts/             # Кроссплатформенные Node-скрипты (копирование dist, clean)
+├── Makefile             # Таргеты: build, serve, test, docker, apk (make help)
 ├── vite.config.ts       # Конфигурация Vite и PWA
 ├── capacitor.config.ts  # Настройки Capacitor
 └── package.json         # Скрипты и зависимости
