@@ -100,3 +100,28 @@
   opacity: 0;
   transform: translateY(12px);
 }
+.update-icon-btn:hover .update-icon {
+  animation: update-icon-spin 1.4s linear infinite;
+}
+.update-icon-btn.updating .update-icon {
+  animation: update-icon-spin 1s linear infinite;
+}
+@keyframes update-icon-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+.update-toast-enter-active {
+  transition: all 0.3s cubic-bezier(0.21, 1.02, 0.73, 1);
+}
+.update-toast-leave-active {
+  transition: all 0.2s ease-in;
+}
+.update-toast-enter-from,
+.update-toast-leave-to {
+  opacity: 0;
+  transform: translateX(100%);
+}

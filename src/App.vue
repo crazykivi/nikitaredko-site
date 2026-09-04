@@ -5,6 +5,7 @@ import LoadingBar from './components/LoadingBar.vue'
 import ScrollToTop from './components/ScrollToTop.vue'
 import CommandPalette from './components/CommandPalette.vue'
 import OfflineBanner from './components/OfflineBanner.vue'
+import UpdateToast from './components/UpdateToast.vue'
 </script>
 
 <template>
@@ -21,6 +22,7 @@ import OfflineBanner from './components/OfflineBanner.vue'
     </main>
     <AppFooter />
     <ScrollToTop />
+    <UpdateToast />
     <CommandPalette />
   </div>
 </template>
