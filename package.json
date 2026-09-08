@@ -41,7 +41,7 @@
     "@vitest/coverage-v8": "^4.1.11",
     "@vue/test-utils": "^2.5.0",
     "@vue/tsconfig": "^0.9.1",
-    "autoprefixer": "^10.5.4",
+    "autoprefixer": "^10.5.5",
     "cross-env": "^10.1.0",
     "git-rev-sync": "^3.0.2",
     "happy-dom": "^20.14.0",
