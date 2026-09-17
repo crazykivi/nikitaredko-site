@@ -14,7 +14,7 @@ ENV VITE_GIT_TAG=$VITE_GIT_TAG
 ENV VITE_GIT_IS_RELEASE=$VITE_GIT_IS_RELEASE
 RUN npm run build
 
-FROM golang:1.25-alpine AS backend-builder
+FROM golang:1.27-alpine AS backend-builder
 WORKDIR /app
 COPY backend/go.mod backend/go.sum ./
 RUN go mod download

@@ -1,7 +1,7 @@
 # nikitaredko-site
 
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen?style=flat-square)
-![Go Version](https://img.shields.io/badge/Go-1.25-00ADD8?style=flat-square&logo=go)
+![Go Version](https://img.shields.io/badge/Go-1.27-00ADD8?style=flat-square&logo=go)
 ![Vue Version](https://img.shields.io/badge/Vue-3.x-42b883?style=flat-square&logo=vue.js)
 ![License](https://img.shields.io/badge/License-Apache%202.0-blue?style=flat-square)
 ![PWA](https://img.shields.io/badge/PWA-Ready-5A0FC8?style=flat-square&logo=pwa)
@@ -38,7 +38,7 @@
 | **Фронтенд** | Vue 3 (Composition API), Vite 8, TypeScript, Vue Router |
 | **Стилизация** | Tailwind CSS (Typography), PostCSS |
 | **Контент** | Markdown-it, DOMPurify, Highlight.js |
-| **Бэкенд** | Go 1.25, Gin, go-cache, godotenv |
+| **Бэкенд** | Go 1.27, Gin, go-cache, godotenv |
 | **Мобильная сборка** | Capacitor 8 (Android) |
 | **Тестирование** | Vitest, Vue Test Utils, Happy DOM, Go `testing` |
 | **DevOps** | GitHub Actions, Docker, Nginx |
@@ -47,7 +47,7 @@
 
 ### Требования
 - **Node.js:** 20+ 
-- **Go:** 1.25+
+- **Go:** 1.27+
 - **npm** или **pnpm**
 
 ### Установка
