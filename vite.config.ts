@@ -161,5 +161,8 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+    watch: {
+      ignored: ['**/public/fonts/**', '**/public/sounds/**', '**/*.mp3'],
+    },
   },
 })
