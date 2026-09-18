@@ -108,36 +108,6 @@ export default defineConfig({
                 maxAgeSeconds: 60 * 60 * 24 * 30
               }
             }
-          },
-          {
-            urlPattern: /https:\/\/fonts\.googleapis\.com/,
-            method: 'GET',
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts-cache',
-              cacheableResponse: {
-                statuses: [0, 200]
-              },
-              expiration: {
-                maxEntries: 20,
-                maxAgeSeconds: 60 * 60 * 24 * 365
-              }
-            }
-          },
-          {
-            urlPattern: /https:\/\/fonts\.gstatic\.com/,
-            method: 'GET',
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'gstatic-fonts-cache',
-              cacheableResponse: {
-                statuses: [0, 200]
-              },
-              expiration: {
-                maxEntries: 20,
-                maxAgeSeconds: 60 * 60 * 24 * 365
-              }
-            }
           }
         ]
       },
