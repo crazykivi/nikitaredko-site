@@ -1,0 +1,7 @@
+<svg xmlns="http://w3.org" viewBox="0 0 9 9" shape-rendering="crispEdges">
+    <path
+        d="M2,0 h2 M5,0 h2 M1,1 h1 M4,1 h1 M8,1 h1 M0,2 h1 M8,2 h1 M0,3 h1 M8,3 h1 M0,4 h1 M8,4 h1 M1,5 h1 M7,5 h1 M2,6 h1 M6,6 h1 M3,7 h1 M5,7 h1 M4,8 h1"
+        fill="#000000" />
+    <path d="M1,2 h1" fill="#FFFFFF" />
+    <path d="M2,1 h2 M5,1 h2 M2,2 h6 M1,3 h7 M1,4 h7 M2,5 h5 M3,6 h3 M4,7 h1" fill="#FF0000" />
+</svg>
