@@ -11,7 +11,7 @@
     --foreground: #09090b;
     --muted: #71717a;
     --border: #e4e4e7;
-    --bb-crack: rgb(0 0 0 / 0.65);
+    --bb-crack: rgb(0 0 0 / 0.85);
   }
 
   .dark {
@@ -219,7 +219,7 @@ html.bb-shake {
   outline: 2px solid rgb(255 255 255 / 0.4);
   outline-offset: -1px;
   background: rgb(255 255 255 / 0.07);
-  animation: bb-pulse 0.2s ease-out;
+  animation: bb-pulse 0.12s ease-out;
 }
 
 .bb-cracks {
