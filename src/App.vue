@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
+import { primeMcSounds } from './utils/mcSounds'
+import { useTheme } from './composables/useTheme'
+import { useCaveSounds } from './composables/useCaveSounds'
+import { useUiClickSound } from './composables/useUiClickSound'
 import AppHeader from './components/AppHeader.vue'
 import AppFooter from './components/AppFooter.vue'
 import LoadingBar from './components/LoadingBar.vue'
@@ -6,12 +11,21 @@ import ScrollToTop from './components/ScrollToTop.vue'
 import CommandPalette from './components/CommandPalette.vue'
 import OfflineBanner from './components/OfflineBanner.vue'
 import UpdateToast from './components/UpdateToast.vue'
+import BlockBreakOverlay from './components/BlockBreakOverlay.vue'
+
+const { mode } = useTheme()
+useCaveSounds(mode)
+useUiClickSound()
+
+onMounted(() => {
+  window.addEventListener('pointerdown', primeMcSounds, { once: true })
+})
 </script>
 
 <template>
   <div class="min-h-screen flex flex-col bg-background text-foreground">
     <LoadingBar />
-    <AppHeader /> 
+    <AppHeader />
     <OfflineBanner />
     <main class="flex-1 flex flex-col pt-16">
       <router-view v-slot="{ Component }">
@@ -23,6 +37,7 @@ import UpdateToast from './components/UpdateToast.vue'
     <AppFooter />
     <ScrollToTop />
     <UpdateToast />
+    <BlockBreakOverlay />
     <CommandPalette />
   </div>
 </template>
