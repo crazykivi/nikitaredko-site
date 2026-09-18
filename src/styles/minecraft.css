@@ -1,0 +1,318 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+.charcoal {
+    --mc-panel: rgba(0, 0, 0, 0.72);
+    --mc-stone: #6f6f6f;
+    --mc-stone-hi: #9d9d9d;
+    --mc-stone-lo: #3a3a3a;
+    --mc-yellow: #ffff55;
+    --mc-green: #55ff55;
+    --mc-gold: #ffaa00;
+    --mc-link: #55ffff;
+    font-size: 12px;
+    --mc-container: 96rem;
+    --mc-font-family: 'Press Start 2P', 'JetBrains Mono', monospace;
+}
+
+.charcoal body,
+.charcoal button,
+.charcoal input,
+.charcoal textarea,
+.charcoal kbd {
+    font-family: var(--mc-font-family);
+    color: rgb(var(--foreground));
+    line-height: 1.7;
+}
+
+.charcoal body {
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.75);
+    background-color: #241c13;
+    background-image: url('/dirt.svg');
+    background-size: 64px 64px;
+    background-repeat: repeat;
+    position: relative;
+    overflow-x: hidden;
+}
+
+.charcoal .min-h-screen.bg-background {
+    background-color: transparent !important;
+    background-image: none !important;
+}
+
+.charcoal *,
+.charcoal *::before,
+.charcoal *::after {
+    border-radius: 0 !important;
+    transition: none !important;
+}
+
+.charcoal [class*='backdrop-blur'] {
+    backdrop-filter: none !important;
+}
+
+.charcoal button,
+.charcoal [role='button'] {
+    background-color: var(--mc-stone);
+    border: 2px solid #000;
+    box-shadow: inset 2px 2px 0 var(--mc-stone-hi), inset -2px -2px 0 var(--mc-stone-lo);
+    color: var(--foreground);
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.6);
+}
+
+.charcoal button:hover:not(:disabled),
+.charcoal [role='button']:hover:not(:disabled) {
+    background-color: #7e7e7e;
+    color: var(--mc-yellow);
+}
+
+.charcoal button:active:not(:disabled),
+.charcoal [role='button']:active:not(:disabled) {
+    box-shadow: inset 2px 2px 0 var(--mc-stone-lo), inset -2px -2px 0 var(--mc-stone-hi);
+}
+
+.charcoal button:disabled {
+    opacity: 0.6;
+    color: #a0a0a0;
+}
+
+.charcoal header,
+.charcoal footer,
+.charcoal [role='dialog'],
+.charcoal .modal-panel {
+    background-color: var(--mc-panel);
+    border-color: #000;
+    box-shadow: inset 2px 2px 0 rgba(255, 255, 255, 0.12), inset -2px -2px 0 rgba(0, 0, 0, 0.5);
+}
+
+.charcoal input,
+.charcoal textarea {
+    background-color: #000;
+    border: 2px solid #a0a0a0;
+    box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.6);
+    color: rgb(var(--foreground));
+}
+
+.charcoal input::placeholder {
+    color: #7c7c7c;
+}
+
+.charcoal kbd {
+    background-color: #8b8b8b;
+    border: 2px solid;
+    border-color: #373737 #ffffff #ffffff #373737;
+    color: #1b1b1b;
+    text-shadow: none;
+}
+
+.charcoal h1,
+.charcoal h2 {
+    color: var(--mc-yellow);
+}
+
+.charcoal .prose a {
+    color: var(--mc-link);
+    text-decoration: underline;
+}
+
+.charcoal .prose pre code.hljs {
+    background: #000;
+    border: 2px solid #3f3f3f;
+    color: var(--mc-green);
+}
+
+.charcoal .prose .code-header {
+    background: #313131;
+    border-color: #000;
+}
+
+.charcoal .prose p code,
+.charcoal .prose li code {
+    background: #000;
+    color: var(--mc-gold);
+}
+
+.charcoal {
+    scrollbar-color: var(--mc-stone) #262626;
+}
+
+.charcoal ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+.charcoal ::-webkit-scrollbar-track {
+    background: #262626;
+}
+
+.charcoal ::-webkit-scrollbar-thumb {
+    background: var(--mc-stone);
+    border: 2px solid #000;
+    box-shadow: inset 2px 2px 0 var(--mc-stone-hi), inset -2px -2px 0 var(--mc-stone-lo);
+}
+
+.charcoal ::selection {
+    background: var(--mc-green);
+    color: #000;
+    text-shadow: none;
+}
+
+.charcoal :focus-visible {
+    outline: 2px solid var(--mc-green);
+    outline-offset: 2px;
+}
+
+.charcoal img {
+    image-rendering: pixelated;
+}
+
+.charcoal .mc-xp-track {
+    background: #0b3d0b !important;
+    height: 20px;
+    z-index: 100;
+}
+
+.charcoal .mc-xp-fill {
+    background: linear-gradient(#7dff7d, #2f9e2f) !important;
+    box-shadow: 0 0 0 2px #000;
+}
+
+.mc-transition {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: grid;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.mc-transition-cell {
+    transform: scale(0);
+    opacity: 0;
+    box-shadow:
+        inset 3px 3px 0 rgba(255, 255, 255, 0.12),
+        inset -3px -3px 0 rgba(0, 0, 0, 0.55);
+    animation-name: mc-cell-in;
+    animation-timing-function: steps(4, end);
+    animation-fill-mode: forwards;
+}
+
+.mc-transition-cell.mc-out {
+    animation-name: mc-cell-out;
+    animation-timing-function: steps(4, end);
+    animation-fill-mode: forwards;
+}
+
+@keyframes mc-cell-in {
+    from {
+        transform: scale(0);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes mc-cell-out {
+    from {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    to {
+        transform: scale(0);
+        opacity: 0;
+    }
+}
+
+.charcoal .header {
+    max-width: var(--mc-container);
+}
+
+.charcoal .category-left {
+    width: 23rem;
+}
+
+.charcoal .article-opened,
+.max-w-5xl {
+    max-width: 104rem;
+}
+
+.charcoal .sidebar-themes {
+    width: 26rem;
+}
+
+.charcoal .sidebar-opened {
+    max-width: 30rem;
+}
+
+.charcoal .about-text {
+    padding: 24px;
+}
+
+.charcoal .about-me-text {
+    max-width: 100%;
+}
+
+.charcoal button[data-cmd-id]:hover:not(:disabled) {
+    background-color: rgb(var(--foreground) / 0.06);
+    color: rgb(var(--foreground));
+}
+
+.charcoal button[data-selected='true'],
+.charcoal button[data-selected='true']:hover:not(:disabled),
+.charcoal button[data-selected='true']:active:not(:disabled) {
+    background-color: rgb(var(--foreground) / 0.14);
+    color: var(--mc-yellow);
+}
+
+.charcoal button[data-selected='true']>span[aria-hidden='true'] {
+    background-color: var(--mc-green);
+}
+
+.charcoal .font-mono {
+    font-family: var(--mc-font-family);
+}
+
+.charcoal a:hover:not(:disabled) {
+    color: var(--mc-yellow);
+}
+
+.charcoal .modal-control-panel {
+    max-width: 45rem;
+}
+
+.charcoal .button-category-opener {
+    height: 32px;
+    width: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.charcoal .home-text {
+    min-height: 12rem;
+}
+
+.charcoal .back-btn {
+    padding: 0.4rem;
+}
+
+.charcoal .category-padding {
+    padding: 0;
+}
+
+.charcoal .category-btn {
+    height: 34px;
+    width: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.charcoal .sidebar-counter {
+    background: none;
+    color: var(--foreground);
+}

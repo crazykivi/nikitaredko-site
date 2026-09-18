@@ -49,7 +49,7 @@ onMounted(() => {
 <template>
   <div class="min-h-[calc(100vh-7.3rem)] flex items-center justify-center px-4 max-md:pt-16 max-md:pb-16 select-none">
     <div class="text-center space-y-8 max-w-4xl">
-      <div class="space-y-4 min-h-[11.3rem] md:min-h-[9rem]">
+      <div class="space-y-4 min-h-[11.3rem] md:min-h-[9rem] home-text">
         <p class="text-sm font-mono text-muted uppercase tracking-widest animate-fade-in">
           Привет, я Никита
         </p>

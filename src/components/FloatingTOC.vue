@@ -69,7 +69,7 @@ watch([activeIndex, isExpanded], () => {
 
 <template>
   <div
-    class="hidden 2xl:block fixed right-6 top-24 w-64 z-30"
+    class="hidden 2xl:block fixed right-6 top-24 w-64 z-30 sidebar-themes"
     @mouseenter="onEnter"
     @mouseleave="onLeave"
   >
@@ -144,7 +144,7 @@ watch([activeIndex, isExpanded], () => {
       >
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="closePopup" />
         <div
-          class="relative w-full max-w-sm max-h-[70vh] overflow-y-auto bg-background border border-border rounded-2xl shadow-2xl p-4 animate-slide-up"
+          class="relative w-full max-w-sm max-h-[70vh] overflow-y-auto bg-background border border-border rounded-2xl shadow-2xl p-4 animate-slide-up sidebar-opened"
         >
           <div class="flex items-center justify-between mb-3">
             <p class="text-sm font-semibold">Содержание</p>

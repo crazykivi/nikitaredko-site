@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import { createHead } from '@unhead/vue/client'
 import './styles/style.css'
+import './styles/minecraft.css'
 import './styles/markdown.css'
 import App from './App.vue'
 import router from './router'

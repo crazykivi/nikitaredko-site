@@ -63,7 +63,7 @@ useHead({
         <p class="text-muted/60 text-sm mt-2">Добавь контент в Outline в формате Markdown</p>
       </div>
       <div v-else>
-        <header class="mb-16 animate-fade-in">
+        <header class="mb-16 animate-fade-in about-text">
           <div class="flex items-center gap-2 text-sm text-muted mb-4">
             <router-link to="/" class="hover:text-foreground transition-colors">Главная</router-link>
             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -74,7 +74,7 @@ useHead({
           <h1 class="text-5xl md:text-6xl font-bold tracking-tight mb-4">
             Что я использую
           </h1>
-          <p class="text-lg text-muted max-w-2xl leading-relaxed">
+          <p class="text-lg text-muted max-w-2xl leading-relaxed about-me-text">
             Список железа, софта и инструментов, которые помогают мне кодить каждый день.
             Вдохновлено <a href="https://uses.tech/" target="_blank" rel="noopener noreferrer" class="underline hover:text-foreground transition-colors">uses.tech</a>.
           </p>

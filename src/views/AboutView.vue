@@ -106,7 +106,7 @@ useHead({
         </p>
       </div>
       <div v-else-if="data">
-        <header class="mb-14 animate-fade-in">
+        <header class="mb-14 animate-fade-in about-text">
           <p class="font-mono text-xs uppercase tracking-widest text-muted mb-4">
             // обо мне
           </p>
@@ -115,7 +115,7 @@ useHead({
           </h1>
           <div
             v-if="data.intro"
-            class="text-lg text-muted leading-relaxed max-w-3xl space-y-4"
+            class="text-lg text-muted leading-relaxed max-w-3xl space-y-4 about-me-text"
           >
             <p v-for="(p, i) in data.intro.split('\n').filter((l) => l.trim())" :key="i">
               {{ p }}

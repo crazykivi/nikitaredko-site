@@ -6,18 +6,32 @@
 
 @layer base {
   :root {
-    color-scheme: light; 
+    color-scheme: light;
     --background: #ffffff;
     --foreground: #09090b;
     --muted: #71717a;
     --border: #e4e4e7;
+    --bb-crack: rgb(0 0 0 / 0.65);
   }
+
   .dark {
-    color-scheme: dark; 
+    color-scheme: dark;
     --background: #09090b;
     --foreground: #fafafa;
     --muted: #a1a1aa;
     --border: #27272a;
+    --bb-crack: rgb(255 255 255 / 0.6);
+  }
+
+  .charcoal {
+    /* --background: 28 28 28;
+    --foreground: 232 232 232;
+    --muted: 168 168 168;
+    --border: 76 76 76; */
+    --background: #1c1c1c;
+    --foreground: #e8e8e8;
+    --muted: #a8a8a8;
+    --border: #4c4c4c;
   }
 
   html,
@@ -60,68 +74,212 @@
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
+
 .custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: rgb(113 113 122 / 0.3) transparent;
 }
+
 .custom-scrollbar::-webkit-scrollbar {
   height: 4px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background-color: rgb(113 113 122 / 0.3);
   border-radius: 9999px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: rgb(113 113 122 / 0.5);
 }
+
 .dark .custom-scrollbar {
   scrollbar-color: rgb(113 113 122 / 0.4) transparent;
 }
+
 .dark .custom-scrollbar::-webkit-scrollbar-thumb {
   background-color: rgb(113 113 122 / 0.4);
 }
+
 .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: rgb(113 113 122 / 0.6);
 }
+
 .toast-enter-active,
 .toast-leave-active {
   transition: opacity 0.25s ease, transform 0.25s ease;
 }
+
 .toast-enter-from,
 .toast-leave-to {
   opacity: 0;
   transform: translateY(12px);
 }
+
 .update-icon-btn:hover .update-icon {
   animation: update-icon-spin 1.4s linear infinite;
 }
+
 .update-icon-btn.updating .update-icon {
   animation: update-icon-spin 1s linear infinite;
 }
+
 @keyframes update-icon-spin {
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
 }
+
 .update-toast-enter-active {
   transition: all 0.3s cubic-bezier(0.21, 1.02, 0.73, 1);
 }
+
 .update-toast-leave-active {
   transition: all 0.2s ease-in;
 }
+
 .update-toast-enter-from,
 .update-toast-leave-to {
   opacity: 0;
   transform: translateX(100%);
+}
+
+.charcoal .modal-overlay {
+  background-color: rgb(10 10 10 / 0.92);
+}
+
+.charcoal .modal-panel {
+  background-color: #161616;
+  border-color: rgb(255 255 255 / 0.08);
+  box-shadow: 0 24px 70px rgb(0 0 0 / 0.6);
+}
+
+html.is-breaking,
+html.is-breaking * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -webkit-touch-callout: none !important;
+  cursor: progress;
+}
+
+html.bb-shake {
+  animation: bb-screen-shake 0.4s linear;
+}
+
+@keyframes bb-screen-shake {
+
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+
+  20% {
+    transform: translate(-3px, 2px);
+  }
+
+  40% {
+    transform: translate(3px, -2px);
+  }
+
+  60% {
+    transform: translate(-2px, -2px);
+  }
+
+  80% {
+    transform: translate(2px, 2px);
+  }
+}
+
+.bb-overlay {
+  position: fixed;
+  width: 112px;
+  height: 112px;
+  margin: -56px 0 0 -56px;
+  z-index: 99990;
+  pointer-events: none;
+}
+
+.bb-frame {
+  position: absolute;
+  inset: 0;
+  outline: 2px solid rgb(255 255 255 / 0.4);
+  outline-offset: -1px;
+  background: rgb(255 255 255 / 0.07);
+  animation: bb-pulse 0.2s ease-out;
+}
+
+.bb-cracks {
+  position: absolute;
+  inset: 0;
+}
+
+.bb-cracks path {
+  fill: none;
+  stroke: var(--bb-crack);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  opacity: 0;
+  transition: opacity 0.12s linear;
+}
+
+.bb-cracks path.bb-on {
+  opacity: 1;
+}
+
+.bb-healing .bb-frame {
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.bb-healing .bb-cracks path {
+  opacity: 0;
+  transition: opacity 0.18s linear;
+}
+
+.bb-particle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  background: var(--c);
+  animation: bb-fly 0.5s ease-out forwards;
+}
+
+@keyframes bb-pulse {
+  from {
+    transform: scale(0.94);
+    opacity: 0.4;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes bb-fly {
+  from {
+    transform: translate(-50%, -50%);
+    opacity: 1;
+  }
+
+  to {
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(120deg);
+    opacity: 0;
+  }
 }
