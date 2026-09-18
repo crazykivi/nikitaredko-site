@@ -1,10 +1,11 @@
 <script setup lang="ts">
 defineOptions({ name: 'ArticlesView' })
-import { ref, computed, onMounted, onUnmounted, onActivated, watch } from 'vue'
+import { ref, computed, inject, onMounted, onUnmounted, onActivated, watch, type ComputedRef } from 'vue'
 import { useRoute } from 'vue-router'
 import { getArticlesFeed } from '../services/api'
-import type { Article } from '../services/api'
+import type { Article, CollectionWithArticles } from '../services/api'
 import ArticleCard from '../components/ArticleCard.vue'
+import ArticlesListSkeleton from '../components/ArticlesListSkeleton.vue'
 import Spinner from '../components/Spinner.vue'
 
 const route = useRoute()
@@ -29,17 +30,32 @@ onUnmounted(() => {
 const totalPages = computed(() => Math.ceil(total.value / limit))
 const hasMore = computed(() => currentPage.value * limit < total.value)
 
+const collectionMeta = inject<ComputedRef<Map<string, CollectionWithArticles>>>(
+  'collectionMeta',
+  computed(() => new Map<string, CollectionWithArticles>()),
+)
+
+const FALLBACK_ACCENTS = ['#22d3ee', '#a78bfa', '#34d399', '#fbbf24', '#f472b6', '#60a5fa']
+
+const accentOf = (collectionId: string): string => {
+  const color = collectionMeta.value.get(collectionId)?.color
+  if (color) return color
+  let hash = 0
+  for (const chr of collectionId) hash = (hash * 31 + chr.charCodeAt(0)) >>> 0
+  return FALLBACK_ACCENTS[hash % FALLBACK_ACCENTS.length]
+}
+
 const fetchArticles = async (page: number, append: boolean = false) => {
   if (loading.value) return
   loading.value = true
   error.value = null
-  
+
   const collectionParam = route.query.collection as string | undefined
-  
+
   try {
     const res = await getArticlesFeed(page, limit, collectionParam)
     total.value = res.total
-    
+
     if (append) {
       articles.value = [...articles.value, ...res.articles]
     } else {
@@ -127,17 +143,7 @@ onActivated(() => {
         {{ `${total} ${getWord(total)}` }}
       </p>
     </div>
-    <div v-if="loading && articles.length === 0" class="space-y-6">
-      <div v-for="i in 3" :key="i" class="p-6 rounded-xl border border-border bg-background animate-pulse">
-        <div class="h-4 bg-muted/50 rounded w-1/4 mb-4"></div>
-        <div class="flex gap-2 mb-3">
-          <div class="h-5 bg-muted/50 rounded w-16"></div>
-          <div class="h-5 bg-muted/50 rounded w-20"></div>
-        </div>
-        <div class="h-7 bg-muted/50 rounded w-3/4 mb-3"></div>
-        <div class="h-4 bg-muted/50 rounded w-full mb-2"></div>
-      </div>
-    </div>
+    <ArticlesListSkeleton v-if="loading && articles.length === 0" />
 
     <div v-else-if="error" class="text-center py-20">
       <p class="text-muted mt-2">Не удалось загрузить данные. Попробуйте обновить страницу.</p>
@@ -148,12 +154,9 @@ onActivated(() => {
     </div>
 
     <div v-else>
-      <div class="space-y-6">
-        <ArticleCard
-          v-for="article in articles"
-          :key="article.id"
-          :article="article"
-        />
+      <div class="divide-y divide-border">
+        <ArticleCard v-for="(article, index) in articles" :key="article.id" :article="article"
+          :accent="accentOf(article.collectionId)" :number="(currentPage - 1) * limit + index + 1" />
       </div>
 
       <div v-if="isMobile && hasMore" ref="sentinel" class="mt-8 h-16 flex items-center justify-center">
@@ -165,36 +168,26 @@ onActivated(() => {
       </div>
 
       <div v-if="!isMobile && totalPages > 1" class="mt-12 flex items-center justify-center gap-2">
-        <button
-          @click="goToPage(currentPage - 1)"
-          :disabled="currentPage === 1"
-          class="px-4 py-2 rounded-lg border border-border text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted/50"
-        >
+        <button @click="goToPage(currentPage - 1)" :disabled="currentPage === 1"
+          class="px-4 py-2 rounded-lg border border-border text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted/50">
           Назад
         </button>
         <div class="flex items-center gap-1">
           <template v-for="page in paginationRange" :key="page">
-            <button
-              v-if="page !== '...'"
-              @click="goToPage(page as number)"
-              :class="[
-                'w-10 h-10 rounded-lg text-sm font-medium transition-colors',
-                currentPage === page
-                  ? 'bg-foreground text-background'
-                  : 'hover:bg-muted/50 text-muted hover:text-foreground'
-              ]"
-            >
+            <button v-if="page !== '...'" @click="goToPage(page as number)" :class="[
+              'w-10 h-10 rounded-lg text-sm font-medium transition-colors',
+              currentPage === page
+                ? 'bg-foreground text-background'
+                : 'hover:bg-muted/50 text-muted hover:text-foreground'
+            ]">
               {{ page }}
             </button>
             <span v-else class="w-10 h-10 flex items-center justify-center text-muted">...</span>
           </template>
         </div>
 
-        <button
-          @click="goToPage(currentPage + 1)"
-          :disabled="currentPage === totalPages"
-          class="px-4 py-2 rounded-lg border border-border text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted/50"
-        >
+        <button @click="goToPage(currentPage + 1)" :disabled="currentPage === totalPages"
+          class="px-4 py-2 rounded-lg border border-border text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted/50">
           Вперед
         </button>
       </div>
