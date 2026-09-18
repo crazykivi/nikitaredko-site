@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -116,7 +117,17 @@ func main() {
 			r.StaticFile("/robots.txt", "./dist/robots.txt")
 			r.StaticFile("/sw.js", "./dist/sw.js")
 			r.StaticFile("/manifest.webmanifest", "./dist/manifest.webmanifest")
-			r.NoRoute(articleHandler.ServeFrontend)
+			r.NoRoute(func(c *gin.Context) {
+				path := c.Request.URL.Path
+				if len(path) > 1 && strings.Contains(path, ".") {
+					filePath := filepath.Join("./dist", filepath.Clean(path))
+					if info, err := os.Stat(filePath); err == nil && !info.IsDir() {
+						c.File(filePath)
+						return
+					}
+				}
+				articleHandler.ServeFrontend(c)
+			})
 			log.Println("[Static] Serving frontend from ./dist")
 		} else {
 			log.Println("[Static] No ./dist folder found, API-only mode")
