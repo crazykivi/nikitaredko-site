@@ -316,3 +316,88 @@
     background: none;
     color: var(--foreground);
 }
+
+.charcoal .prose .code-block-wrapper {
+    position: relative;
+    margin: 2em 0 2.75em;
+    border: 2px solid #000;
+    overflow: visible;
+    background-color: #c19a5f;
+    background-image: url('/oak_sign.svg');
+    background-size: 48px 48px;
+    image-rendering: pixelated;
+    box-shadow:
+        inset 2px 2px 0 rgb(255 255 255 / 0.18),
+        inset -2px -2px 0 rgb(0 0 0 / 0.28);
+}
+
+.charcoal .prose .code-block-wrapper::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    width: 10px;
+    height: 26px;
+    margin-left: -5px;
+    background: repeating-linear-gradient(180deg,
+            #7a5c33 0 7px,
+            #6b5030 7px 14px,
+            #554026 14px 21px,
+            #6b5030 21px 26px);
+    border-left: 2px solid #000;
+    border-right: 2px solid #000;
+    box-shadow: inset 2px 0 0 rgb(255 255 255 / 0.12);
+}
+
+.charcoal .prose .code-header {
+    background: transparent !important;
+    border-bottom: 2px solid rgb(0 0 0 / 0.35);
+}
+
+.charcoal .prose .code-header span {
+    color: #241a0e;
+}
+
+.charcoal .prose .code-header button.copy-code-btn {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    color: #241a0e;
+    text-shadow: none;
+}
+
+.charcoal .prose .code-header button.copy-code-btn:hover:not(:disabled) {
+    background: rgb(0 0 0 / 0.15);
+    color: #000;
+}
+
+.charcoal .prose .code-block-wrapper pre code.hljs {
+    background: transparent;
+    border: none;
+    color: #1b1207;
+    text-shadow: none;
+    font-family: var(--mc-font-family);
+    font-size: 10px;
+    line-height: 2;
+}
+
+.charcoal .prose .code-block-wrapper .hljs-comment,
+.charcoal .prose .code-block-wrapper .hljs-quote {
+    color: #6f5636;
+    font-style: italic;
+}
+
+.charcoal .prose .code-block-wrapper .hljs-keyword,
+.charcoal .prose .code-block-wrapper .hljs-selector-tag,
+.charcoal .prose .code-block-wrapper .hljs-title,
+.charcoal .prose .code-block-wrapper .hljs-section {
+    color: #000;
+    font-weight: 700;
+}
+
+.charcoal .prose .code-block-wrapper .hljs-string,
+.charcoal .prose .code-block-wrapper .hljs-attr,
+.charcoal .prose .code-block-wrapper .hljs-number,
+.charcoal .prose .code-block-wrapper .hljs-literal {
+    color: #3b2a12;
+}
