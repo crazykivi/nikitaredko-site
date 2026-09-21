@@ -104,14 +104,21 @@ const selectCollectionAndCenter = (id: string | null, e: Event) => {
 }
 
 const toggleSidebar = () => {
-  isSidebarCollapsed.value = !isSidebarCollapsed.value
+  const isCollapsing = !isSidebarCollapsed.value
+  isSidebarCollapsed.value = isCollapsing
+  
   if (mode.value === 'charcoal') {
-    playMcSound('piston', { volume: 0.45, rate: 0.8 })
+    if (isCollapsing) {
+      playMcSound('piston', { volume: 0.30, rate: 1.2 }) // Закрывание
+    } else {
+      playMcSound('piston', { volume: 0.30, rate: 0.8 }) // Открывание
+    }
   }
+  
   try {
     localStorage.setItem('sidebar_collapsed', String(isSidebarCollapsed.value))
   } catch {
-    // localStorage недоступен (приватный режим / переполнение) - пропуск
+    // localStorage недоступен
   }
 }
 
