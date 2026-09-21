@@ -41,13 +41,6 @@ const tocItems = computed((): TOCItem[] => {
 })
 
 const giscusTheme = computed(() => {
-  if (mode.value === 'charcoal') {
-    if (import.meta.env.PROD) {
-      const origin = typeof window !== 'undefined' ? window.location.origin : ''
-      return origin ? `${origin}/giscus-charcoal.css` : '/giscus-charcoal.css'
-    }
-    return 'dark'
-  }
   return effectiveDark.value ? 'dark' : 'light'
 })
 
