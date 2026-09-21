@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import DOMPurify, { type Config as DOMPurifyConfig } from 'dompurify';
 import ReadingProgressBar from '../components/ReadingProgressBar.vue';
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { getArticle, getArticlesStructured } from "../services/api";
 import { useHead, type ReactiveHead } from '@unhead/vue';
+import { useArticleXp } from '../composables/useArticleXp'
+import { useTheme } from '../composables/useTheme'
 import type { Article, CollectionWithArticles } from "../services/api";
 import type { TOCItem } from '../components/ArticleTOC.vue'
 import FloatingTOC from '../components/FloatingTOC.vue'
@@ -12,24 +15,22 @@ import markdownItContainer from "markdown-it-container";
 import hljs from "highlight.js";
 import "highlight.js/styles/github-dark.css";
 import Giscus from '@giscus/vue';
-import DOMPurify, { type Config as DOMPurifyConfig } from 'dompurify';
-import { useArticleXp } from '../composables/useArticleXp'
+
 
 const route = useRoute();
 const router = useRouter();
+const { mode, effectiveDark } = useTheme()
 
 const article = ref<Article | null>(null);
 const loading = ref(true);
 const error = ref<string | null>(null);
 const allCollections = ref<CollectionWithArticles[]>([]);
 const flatArticles = ref<Article[]>([]);
-const giscusTheme = ref<'light' | 'dark'>('light')
 const copyToast = ref<{ type: 'success' | 'error' } | null>(null)
 const activeHeadingId = ref('')
 const articleId = computed(() => article.value?.id ?? null)
 
 let abortController: AbortController | null = null;
-let themeObserver: MutationObserver | null = null
 let copyToastTimer: ReturnType<typeof setTimeout> | null = null
 
 useArticleXp(articleId)
@@ -37,6 +38,17 @@ useArticleXp(articleId)
 const tocItems = computed((): TOCItem[] => {
   if (!article.value?.content) return []
   return extractHeadings(article.value.content)
+})
+
+const giscusTheme = computed(() => {
+  if (mode.value === 'charcoal') {
+    if (import.meta.env.PROD) {
+      const origin = typeof window !== 'undefined' ? window.location.origin : ''
+      return origin ? `${origin}/giscus-charcoal.css` : '/giscus-charcoal.css'
+    }
+    return 'dark'
+  }
+  return effectiveDark.value ? 'dark' : 'light'
 })
 
 const formatDate = (dateString: string) => {
@@ -403,26 +415,11 @@ const injectCopyButtons = () => {
 
 onMounted(async () => {
   await loadArticle(route.params.id as string);
-
-  giscusTheme.value = document.documentElement.classList.contains('dark') ? 'dark' : 'light'
-  themeObserver = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-      if (mutation.attributeName === 'class') {
-        const isDark = document.documentElement.classList.contains('dark')
-        giscusTheme.value = isDark ? 'dark' : 'light'
-      }
-    }
-  })
-  themeObserver.observe(document.documentElement, {
-    attributes: true,
-    attributeFilter: ['class']
-  })
   document.addEventListener('click', handleCopyClick)
 });
 
 onUnmounted(() => {
   if (abortController) abortController.abort()
-  if (themeObserver) themeObserver.disconnect()
   if (copyToastTimer) clearTimeout(copyToastTimer)
   document.removeEventListener('click', handleCopyClick)
 });

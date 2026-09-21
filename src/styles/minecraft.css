@@ -28,7 +28,7 @@
     text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.75);
     background-color: #241c13;
     background-image: url('/dirt.svg');
-    background-size: 64px 64px;
+    background-size: 192px 192px;
     background-repeat: repeat;
     position: relative;
     overflow-x: hidden;

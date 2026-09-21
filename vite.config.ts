@@ -116,6 +116,24 @@ export default defineConfig({
         enabled: false
       }
     })]),
+    {
+      name: 'pna-cors',
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.setHeader('Access-Control-Allow-Private-Network', 'true');
+          if (req.method === 'OPTIONS') {
+            res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+            res.setHeader('Access-Control-Allow-Headers', '*');
+            res.statusCode = 204;
+            res.end();
+            return;
+          }
+
+          next();
+        });
+      }
+    }
   ],
   define: {
     __COMMIT_HASH__: JSON.stringify(process.env.VITE_GIT_COMMIT || 'unknown'),
