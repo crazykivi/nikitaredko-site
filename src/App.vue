@@ -4,18 +4,22 @@ import { primeMcSounds } from './utils/mcSounds'
 import { useTheme } from './composables/useTheme'
 import { useCaveSounds } from './composables/useCaveSounds'
 import { useUiClickSound } from './composables/useUiClickSound'
+import { useLadderSound } from './composables/useLadderSound'
 import AppHeader from './components/AppHeader.vue'
 import AppFooter from './components/AppFooter.vue'
 import LoadingBar from './components/LoadingBar.vue'
 import ScrollToTop from './components/ScrollToTop.vue'
+import SoundToggle from './components/SoundToggle.vue'
 import CommandPalette from './components/CommandPalette.vue'
 import OfflineBanner from './components/OfflineBanner.vue'
 import UpdateToast from './components/UpdateToast.vue'
 import BlockBreakOverlay from './components/BlockBreakOverlay.vue'
 
+
 const { mode } = useTheme()
 useCaveSounds(mode)
 useUiClickSound()
+useLadderSound()
 
 onMounted(() => {
   window.addEventListener('pointerdown', primeMcSounds, { once: true })
@@ -35,7 +39,10 @@ onMounted(() => {
       </router-view>
     </main>
     <AppFooter />
-    <ScrollToTop />
+    <div class="fixed bottom-6 right-6 z-[90] flex flex-col gap-3 items-end">
+      <SoundToggle />
+      <ScrollToTop />
+    </div>
     <UpdateToast />
     <BlockBreakOverlay />
     <CommandPalette />
