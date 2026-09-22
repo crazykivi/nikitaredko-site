@@ -45,8 +45,8 @@ onUnmounted(() => {
           О себе
         </router-link>
 
-        <button @click="cycleTheme" class="p-2 rounded-lg hover:bg-border/50 transition-colors" :aria-label="label"
-          :title="label" type="button">
+        <button @click="cycleTheme" class="p-2 rounded-lg hover:bg-border/50 transition-colors minecraft-icon"
+          :aria-label="label" :title="label" type="button">
           <svg v-if="mode === 'auto'" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"
             stroke-width="2" aria-hidden="true">
             <circle cx="12" cy="12" r="9" />
@@ -64,28 +64,17 @@ onUnmounted(() => {
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
           </svg>
-          <svg v-else class="w-6 h-6" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
-            <path d="M8 1 L14 4 L8 7 L2 4 Z" fill="#5b8731" />
-            <rect x="7" y="3" width="1" height="1" fill="#4c7227" />
-            <rect x="9" y="5" width="1" height="1" fill="#4c7227" />
-            <rect x="5" y="4" width="1" height="1" fill="#6a9f39" />
-            <rect x="10" y="4" width="1" height="1" fill="#6a9f39" />
-
-            <path d="M2 4 L8 7 L8 15 L2 12 Z" fill="#735135" />
-            <path d="M8 7 L14 4 L14 12 L8 15 Z" fill="#866041" />
-
-            <path d="M2 4 L8 7 L8 9 L2 6 Z" fill="#4c7227" />
-            <rect x="4" y="7" width="1" height="1" fill="#4c7227" />
-            <rect x="6" y="8" width="1" height="1" fill="#4c7227" />
-
-            <path d="M8 7 L14 4 L14 6 L8 9 Z" fill="#5b8731" />
-            <rect x="10" y="8" width="1" height="1" fill="#5b8731" />
-            <rect x="12" y="7" width="1" height="1" fill="#5b8731" />
-
-            <rect x="4" y="10" width="1" height="1" fill="#4d3322" />
-            <rect x="6" y="12" width="1" height="1" fill="#4d3322" />
-            <rect x="10" y="11" width="1" height="1" fill="#5c402b" />
-            <rect x="12" y="10" width="1" height="1" fill="#5c402b" />
+          <svg v-else class="w-8 h-8" viewBox="0 0 20 20">
+            <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+              <g transform="translate(-420.000000, -6319.000000)" fill="#000000">
+                <g id="icons" transform="translate(56.000000, 160.000000)">
+                  <path
+                    d="M376,6169 L380,6169 L380,6165 L376,6165 L376,6169 Z M368,6169 L372,6169 L372,6165 L368,6165 L368,6169 Z M382,6177 L378,6177 L378,6171 L376,6171 L376,6169 L372,6169 L372,6171 L370,6171 L370,6177 L366,6177 L366,6161 L382,6161 L382,6177 Z M372,6177 L376,6177 L376,6175 L372,6175 L372,6177 Z M364,6179 L384,6179 L384,6159 L364,6159 L364,6179 Z"
+                    id="emoji_minecraft_square-[#409]">
+                  </path>
+                </g>
+              </g>
+            </g>
           </svg>
         </button>
       </div>
