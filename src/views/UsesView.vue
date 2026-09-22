@@ -40,7 +40,7 @@ useHead({
 
 <template>
   <div class="min-h-[calc(100vh-7.3rem)] pt-10 pb-20 px-4">
-    <div class="max-w-5xl mx-auto">
+    <div class="max-w-5xl mx-auto about-full">
       <div v-if="loading" class="space-y-8 animate-pulse">
         <div class="h-12 bg-muted/30 rounded w-1/2 mb-4"></div>
         <div class="h-6 bg-muted/30 rounded w-3/4 mb-8"></div>

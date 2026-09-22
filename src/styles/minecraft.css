@@ -235,7 +235,7 @@
 }
 
 .charcoal .article-opened,
-.max-w-5xl {
+.charcoal .about-full {
     max-width: 104rem;
 }
 
@@ -452,4 +452,284 @@
     padding: 0;
     border: none !important;
     background: green !important;
+}
+
+.mc-show-in-charcoal {
+    display: none;
+}
+
+.charcoal .mc-show-in-charcoal {
+    display: block;
+}
+
+.charcoal .mc-hide-in-charcoal {
+    display: none;
+}
+
+.mc-clouds-container {
+    display: none;
+}
+
+.charcoal .mc-header {
+    background: linear-gradient(180deg, #6e9ff2 0%, #8fbaff 55%, #bcd7ff 100%);
+    border-bottom: none;
+    box-shadow: none;
+}
+
+.charcoal .mc-header::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -16px;
+    height: 16px;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'><rect width='16' height='5' fill='%2369a03f'/><rect x='0' y='5' width='2' height='2' fill='%2369a03f'/><rect x='5' y='5' width='3' height='1' fill='%2369a03f'/><rect x='11' y='5' width='2' height='2' fill='%2369a03f'/><rect x='2' y='1' width='3' height='1' fill='%237cb850'/><rect x='9' y='2' width='4' height='1' fill='%23588a34'/></svg>");
+    background-repeat: repeat-x;
+    background-size: 16px 16px;
+    image-rendering: pixelated;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.charcoal .mc-clouds-container {
+    display: block;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+.charcoal .mc-cloud {
+    position: absolute;
+    shape-rendering: crispEdges;
+}
+
+.charcoal .mc-cloud-1 {
+    top: 12%;
+    width: 96px;
+    height: 28px;
+    animation: mc-float 80s linear infinite;
+}
+
+.charcoal .mc-cloud-2 {
+    top: 30%;
+    width: 128px;
+    height: 36px;
+    animation: mc-float 150s linear infinite;
+    animation-delay: -100s;
+    opacity: 0.8;
+}
+
+.charcoal .mc-cloud-3 {
+    top: 28%;
+    width: 72px;
+    height: 20px;
+    animation: mc-float 105s linear infinite;
+    animation-delay: -45s;
+    opacity: 0.6;
+}
+
+@keyframes mc-float {
+    from {
+        transform: translateX(-160px);
+    }
+
+    to {
+        transform: translateX(calc(100vw + 160px));
+    }
+}
+
+.charcoal .mc-logo {
+    background: none;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    color: #ffff55 !important;
+    text-shadow: 2px 2px 0 #3f3f3f;
+    font-family: var(--mc-font-family);
+    font-size: 14px;
+    line-height: 1;
+    transition: none !important;
+    opacity: 1 !important;
+}
+
+.charcoal .mc-logo:hover {
+    color: #ffffa0 !important;
+}
+
+.charcoal .mc-hotbar {
+    gap: 6px;
+    padding: 6px;
+}
+
+.charcoal .mc-slot {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: #8b8b8b;
+    border: 2px solid;
+    border-color: #373737 #ffffff #ffffff #373737;
+    box-shadow: 0 0 0 2px #000;
+    color: var(--foreground);
+    text-shadow: none;
+    transition: none !important;
+}
+
+.charcoal .mc-slot:hover {
+    background: #a5a5a5;
+    color: var(--foreground);
+}
+
+.charcoal .mc-slot:active {
+    border-color: #ffffff #373737 #373737 #ffffff;
+}
+
+.charcoal a.mc-slot.router-link-exact-active {
+    outline: 2px solid #e8e8e8;
+    outline-offset: 2px;
+}
+
+.charcoal .mc-tip {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(16, 0, 16, 0.95);
+    border: 2px solid #5521b5;
+    padding: 5px 8px;
+    font-family: var(--mc-font-family);
+    font-size: 8px;
+    line-height: 1;
+    color: #ffffff;
+    text-shadow: 1px 1px 0 #3f3f3f;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 60;
+}
+
+.charcoal .mc-slot:hover .mc-tip,
+.charcoal .mc-slot:focus-visible .mc-tip {
+    opacity: 1;
+}
+
+@media (max-width: 640px) {
+    .charcoal .mc-slot {
+        width: 34px;
+        height: 34px;
+    }
+
+    .charcoal .mc-slot svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    .charcoal .mc-hotbar {
+        padding: 4px;
+        gap: 4px;
+    }
+
+    .charcoal .mc-logo {
+        font-size: 10px;
+    }
+
+    .charcoal .mc-search-slot {
+        display: none;
+    }
+
+    /* .charcoal .mc-clouds-container {
+        -webkit-mask-image: linear-gradient(90deg, transparent 0 150px, #000 190px calc(100% - 230px), transparent 100%);
+        mask-image: linear-gradient(90deg, transparent 0 150px, #000 190px calc(100% - 230px), transparent 100%);
+    } */
+}
+
+@keyframes mc-creeper-fuse {
+    0% {
+        transform: scale(1);
+        filter: none;
+    }
+
+    12% {
+        transform: scale(1.03);
+        filter: brightness(0) invert(1);
+    }
+
+    25% {
+        transform: scale(1.06);
+        filter: none;
+    }
+
+    37% {
+        transform: scale(1.09);
+        filter: brightness(0) invert(1);
+    }
+
+    50% {
+        transform: scale(1.12);
+        filter: none;
+    }
+
+    62% {
+        transform: scale(1.15);
+        filter: brightness(0) invert(1);
+    }
+
+    75% {
+        transform: scale(1.18);
+        filter: none;
+    }
+
+    87% {
+        transform: scale(1.21);
+        filter: brightness(0) invert(1);
+    }
+
+    100% {
+        transform: scale(1.24);
+        filter: none;
+    }
+}
+
+.charcoal .minecraft-icon.is-fusing {
+    background-color: #0b3d0b !important;
+}
+
+.charcoal .minecraft-icon.is-fusing .mc-creeper {
+    animation: mc-creeper-fuse 1.2s steps(1, end) infinite;
+    transform-origin: 50% 50%;
+}
+
+.charcoal .minecraft-icon.is-exploding .mc-creeper {
+    animation: mc-creeper-explode 0.4s ease-out forwards !important;
+}
+
+@keyframes mc-creeper-explode {
+    0% {
+        transform: scale(1.24);
+        filter: none;
+        opacity: 1;
+    }
+
+    40% {
+        transform: scale(2.2);
+        filter: brightness(3) invert(1);
+    }
+
+    100% {
+        transform: scale(3);
+        filter: brightness(5);
+        opacity: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .charcoal .minecraft-icon:hover .mc-creeper {
+        animation: none;
+    }
 }

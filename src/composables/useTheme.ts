@@ -98,7 +98,7 @@ export function useTheme() {
   const label = computed(() => {
     if (mode.value === 'light') return 'Светлая тема'
     if (mode.value === 'dark') return 'Тёмная тема'
-    if (mode.value === 'charcoal') return 'Угольная тема'
+    if (mode.value === 'charcoal') return 'Minecraft тема'
     return 'Автоматическая тема (системная)'
   })
 

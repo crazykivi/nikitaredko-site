@@ -68,7 +68,7 @@ useHead({
 
 <template>
   <div class="min-h-[calc(100vh-7.3rem)] pt-10 pb-20 px-4">
-    <div class="max-w-5xl mx-auto">
+    <div class="max-w-5xl mx-auto about-full">
       <div class="flex items-center gap-2 text-sm text-muted mb-4">
         <router-link to="/" class="hover:text-foreground transition-colors"
           >Главная</router-link
