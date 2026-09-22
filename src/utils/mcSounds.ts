@@ -1,7 +1,7 @@
 import { unlockAudio } from './digSound'
 import { isSoundMuted } from '../composables/useSoundSettings'
 
-export type McSoundName = 'dig' | 'break' | 'click' | 'xp' | 'cave' | 'piston' | 'ladder'
+export type McSoundName = 'dig' | 'break' | 'click' | 'xp' | 'cave' | 'piston' | 'ladder' | 'hiss' | 'explode'
 
 const SOURCES: Record<McSoundName, string[]> = {
     dig: ['/sounds/gravel1.mp3', '/sounds/gravel2.mp3', '/sounds/gravel3.mp3', '/sounds/gravel4.mp3'],
@@ -11,6 +11,8 @@ const SOURCES: Record<McSoundName, string[]> = {
     cave: ['/sounds/cave1.mp3', '/sounds/cave2.mp3', '/sounds/cave3.mp3', '/sounds/cave4.mp3', '/sounds/cave5.mp3', '/sounds/cave6.mp3'],
     piston: ['/sounds/piston.mp3'],
     ladder: ['/sounds/ladder1.mp3', '/sounds/ladder2.mp3', '/sounds/ladder3.mp3'],
+    hiss: ['/sounds/hiss.mp3'],
+    explode: ['/sounds/explode.mp3'],
 }
 
 const players = new Map<string, HTMLAudioElement>()
@@ -40,7 +42,7 @@ export function primeMcSounds(): void {
 
 export function playMcSound(
     name: McSoundName,
-    opts: { volume?: number; rate?: number } = {},
+    opts: { volume?: number; rate?: number; loop?: boolean } = {},
 ): void {
     if (isSoundMuted.value) return
     unlockAudio()
@@ -49,5 +51,18 @@ export function playMcSound(
     el.currentTime = 0
     el.volume = opts.volume ?? 1
     el.playbackRate = opts.rate ?? 1
+    el.loop = opts.loop ?? false
     void el.play().catch(() => { })
+}
+
+export function stopMcSound(name: McSoundName): void {
+    const sources = SOURCES[name]
+    if (!sources) return
+    sources.forEach((source) => {
+        const el = players.get(`${name}-${source}`)
+        if (!el) return
+        el.pause()
+        el.currentTime = 0
+        el.loop = false
+    })
 }
