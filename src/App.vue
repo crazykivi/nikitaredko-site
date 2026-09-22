@@ -7,6 +7,7 @@ import { useUiClickSound } from './composables/useUiClickSound'
 import { useLadderSound } from './composables/useLadderSound'
 import AppHeader from './components/AppHeader.vue'
 import AppFooter from './components/AppFooter.vue'
+import SearchFab from './components/SearchFab.vue'
 import LoadingBar from './components/LoadingBar.vue'
 import ScrollToTop from './components/ScrollToTop.vue'
 import SoundToggle from './components/SoundToggle.vue'
@@ -42,6 +43,7 @@ onMounted(() => {
     <div class="fixed bottom-6 right-6 z-[90] flex flex-col gap-3 items-end">
       <SoundToggle />
       <ScrollToTop />
+      <SearchFab />
     </div>
     <UpdateToast />
     <BlockBreakOverlay />
