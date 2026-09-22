@@ -26,7 +26,7 @@ onUnmounted(() => {
         Nikita Redko
       </router-link>
 
-      <div class="flex items-center gap-4 sm:gap-6">
+      <div class="header-actions flex items-center gap-4 sm:gap-6">
         <button
           class="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-muted hover:text-foreground hover:bg-muted/30 transition-colors border border-transparent hover:border-border"
           @click="openCommandPalette" title="Command Palette (/)" type="button">

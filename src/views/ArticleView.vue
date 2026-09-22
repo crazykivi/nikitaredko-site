@@ -472,7 +472,7 @@ onUnmounted(() => {
           </span>
         </div>
         <h1 class="text-4xl font-bold mb-4 break-words">{{ article.title }}</h1>
-        <div class="flex items-center gap-4 text-sm text-muted">
+        <div class="article-meta flex items-center gap-4 text-sm text-muted">
           <time>{{ formatDate(article.createdAt) }}</time>
           <span>•</span>
           <span>{{ article.readTime }} мин чтения</span>

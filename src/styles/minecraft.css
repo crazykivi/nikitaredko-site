@@ -402,3 +402,48 @@
 .charcoal .prose .code-block-wrapper .hljs-literal {
     color: #3b2a12;
 }
+
+.charcoal .esc-badge,
+.charcoal .esc-badge:hover:not(:disabled),
+.charcoal .esc-badge:active:not(:disabled) {
+    background-color: #8b8b8b;
+    border: 2px solid;
+    border-color: #373737 #ffffff #ffffff #373737;
+    color: #1b1b1b;
+    text-shadow: none;
+    box-shadow: none;
+}
+
+@media (max-width: 640px) {
+    .charcoal header nav {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        gap: 0.5rem;
+    }
+
+    .charcoal .header-logo {
+        font-size: 10px;
+        line-height: 1.2;
+        white-space: nowrap;
+    }
+
+    .charcoal .header-actions {
+        gap: 6px;
+        flex-wrap: nowrap;
+    }
+
+    .charcoal .header-link {
+        font-size: 8px;
+        white-space: nowrap;
+    }
+
+    .charcoal .article-meta {
+        flex-wrap: wrap;
+        gap: 4px 10px;
+        font-size: 8px;
+    }
+
+    .charcoal .article-meta>* {
+        white-space: nowrap;
+    }
+}
