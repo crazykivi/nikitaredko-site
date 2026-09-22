@@ -53,6 +53,7 @@ type Command = {
   group: string
   icon: 'home' | 'article' | 'user' | 'tool' | 'theme' | 'github' | 'rss'
   shortcut?: string[]
+  keepOpen?: boolean
   action: () => void
 }
 
@@ -105,6 +106,7 @@ const buildStaticCommands = (): Command[] => [
     description: 'Переключить светлую/тёмную тему/системная',
     group: 'Действия',
     icon: 'theme',
+    keepOpen: true,
     action: () => window.dispatchEvent(new CustomEvent('toggle-app-theme')),
   },
   {
@@ -146,6 +148,7 @@ const secretCommand = computed<Command>(() => ({
     : 'Секретная вкладка: добыча фона как в Minecraft',
   group: 'Секреты',
   icon: 'tool',
+  keepOpen: true,
   action: () => {
     if (toggle()) {
       unlockAudio()
@@ -182,6 +185,39 @@ watch(flatFiltered, () => {
   selectedIndex.value = 0
 })
 
+// Долгое нажатие (400 мс) на команду — показывает полный текст без образки
+const expandedId = ref<string | null>(null)
+let holdTimer: ReturnType<typeof setTimeout> | null = null
+let suppressClick = false
+
+const clearHoldTimer = () => {
+  if (holdTimer !== null) {
+    clearTimeout(holdTimer)
+    holdTimer = null
+  }
+}
+
+const onCmdPointerDown = (id: string) => {
+  suppressClick = false
+  clearHoldTimer()
+  holdTimer = setTimeout(() => {
+    suppressClick = true
+    expandedId.value = expandedId.value === id ? null : id
+  }, 400)
+}
+
+const onCmdPointerEnd = () => {
+  clearHoldTimer()
+}
+
+const onCmdClick = (cmd: Command) => {
+  if (suppressClick) {
+    suppressClick = false
+    return
+  }
+  execute(cmd)
+}
+
 const open = () => {
   previouslyFocused =
     document.activeElement instanceof HTMLElement && document.activeElement !== document.body
@@ -198,6 +234,9 @@ const open = () => {
 const close = () => {
   isOpen.value = false
   lastHoveredId = null
+  clearHoldTimer()
+  suppressClick = false
+  expandedId.value = null
   if (articlesAbort) {
     articlesAbort.abort()
     articlesAbort = null
@@ -206,7 +245,7 @@ const close = () => {
 }
 
 const execute = (cmd: Command) => {
-  close()
+  if (!cmd.keepOpen) close()
   try {
     cmd.action()
   } catch (e) {
@@ -360,6 +399,7 @@ onUnmounted(() => {
   window.removeEventListener('keydown', handleGlobalKeydown)
   document.removeEventListener('focusin', onGlobalFocusIn)
   if (articlesAbort) articlesAbort.abort()
+  clearHoldTimer()
 })
 </script>
 
@@ -379,10 +419,15 @@ onUnmounted(() => {
           <input ref="inputRef" v-model="query" type="text" placeholder="Поиск страниц, статей, действий..."
             class="flex-1 bg-transparent outline-none text-foreground placeholder:text-muted/60 text-base"
             autocomplete="off" spellcheck="false" @keydown="onInputKeydown" />
-          <kbd
+          <!-- <kbd
             class="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono rounded border border-border text-muted">
             ESC
-          </kbd>
+          </kbd> -->
+          <button type="button" @click="close"
+            class="esc-badge hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono rounded border border-border text-muted hover:text-foreground"
+            aria-label="Закрыть (Esc)" title="Закрыть (Esc)">
+            ESC
+          </button>
         </div>
         <div ref="listRef" class="max-h-[50vh] overflow-y-auto py-2" @mousemove="onListMouseMove"
           @mouseleave="onListMouseLeave">
@@ -394,8 +439,10 @@ onUnmounted(() => {
               {{ groupName }}
             </div>
             <button v-for="cmd in groupCmds" :key="cmd.id" :data-cmd-id="cmd.id"
-              :data-selected="flatFiltered[selectedIndex]?.id === cmd.id" @click="execute(cmd)"
-              class="relative w-full flex items-center gap-3 px-5 py-2.5 text-left transition-colors duration-100"
+              :data-selected="flatFiltered[selectedIndex]?.id === cmd.id" @click="onCmdClick(cmd)"
+              @pointerdown="onCmdPointerDown(cmd.id)" @pointerup="onCmdPointerEnd" @pointercancel="onCmdPointerEnd"
+              @pointerleave="onCmdPointerEnd" @contextmenu.prevent :title="cmd.label"
+              class="relative w-full flex items-center gap-3 px-5 py-2.5 text-left transition-colors duration-100 select-none palette-cmd"
               :class="flatFiltered[selectedIndex]?.id === cmd.id
                 ? 'bg-foreground/[0.08] text-foreground'
                 : 'text-foreground/80 hover:bg-foreground/[0.04]'
@@ -414,8 +461,12 @@ onUnmounted(() => {
                 </svg>
               </div>
               <div class="flex-1 min-w-0">
-                <div class="text-sm font-medium truncate">{{ cmd.label }}</div>
-                <div v-if="cmd.description" class="text-xs text-muted truncate">
+                <div class="text-sm font-medium"
+                  :class="expandedId === cmd.id ? 'whitespace-normal break-words' : 'truncate'">
+                  {{ cmd.label }}
+                </div>
+                <div v-if="cmd.description" class="text-xs text-muted"
+                  :class="expandedId === cmd.id ? 'whitespace-normal break-words' : 'truncate'">
                   {{ cmd.description }}
                 </div>
               </div>
@@ -432,7 +483,7 @@ onUnmounted(() => {
           </div>
         </div>
         <div
-          class="flex items-center justify-between px-5 py-2 border-t border-border text-[10px] font-mono text-muted/70 bg-muted/10">
+          class="hidden sm:flex items-center justify-between px-5 py-2 border-t border-border text-[10px] font-mono text-muted/70 bg-muted/10">
           <div class="flex items-center gap-3">
             <span class="flex items-center gap-1"><kbd class="px-1 py-0.5 rounded border border-border">↑↓</kbd>
               навигация</span>
@@ -478,5 +529,10 @@ onUnmounted(() => {
 .palette-enter-from,
 .palette-leave-to {
   opacity: 0;
+}
+
+.palette-cmd {
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
 }
 </style>
