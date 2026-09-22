@@ -447,3 +447,9 @@
         white-space: nowrap;
     }
 }
+
+.charcoal .minecraft-icon {
+    padding: 0;
+    border: none !important;
+    background: green !important;
+}
