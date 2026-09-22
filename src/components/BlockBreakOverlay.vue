@@ -11,14 +11,10 @@ const CANCEL_PX = 12
 const NON_BACKGROUND = [
   'a', 'button', 'input', 'textarea', 'select', 'summary', 'label',
   'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'pre', 'code', 'time',
-  'header', 'footer', 'nav', 'aside', 'article',
   '[role="button"]', '[role="link"]', '[role="dialog"]',
   '.prose', '.fixed', '.mc-transition', '[data-no-break]',
 ].join(', ')
 
-// Пиксельная карта трещин на сетке 16×16 — как текстуры destroy_stage в Minecraft.
-// [x, y, stage] — пиксель появляется на указанной стадии разрушения (1..9).
-// Стадии растут из центра наружу ветвями, в конце добавляются отдельные сколы.
 const CRACK_PIXELS: Array<[number, number, number]> = [
   // стадия 1 — первая отметка в центре
   [8, 8, 1], [7, 7, 1],
@@ -141,6 +137,15 @@ const step = () => {
   playMcSound('dig', { volume: 0.45, rate: 1.4 })
 }
 
+const hasOwnText = (el: Element): boolean => {
+  for (const node of Array.from(el.childNodes)) {
+    if (node.nodeType === Node.TEXT_NODE && (node.textContent ?? '').trim() !== '') {
+      return true
+    }
+  }
+  return false
+}
+
 const onPointerDown = (e: PointerEvent) => {
   const canBreak = unlocked.value || mode.value === 'charcoal'
   if (!canBreak) return
@@ -148,7 +153,7 @@ const onPointerDown = (e: PointerEvent) => {
   if (e.pointerType === 'mouse' && e.button !== 0) return
   if (document.querySelector('[role="dialog"]')) return
   const target = e.target as Element | null
-  if (target && target.closest(NON_BACKGROUND)) return
+  if (target && (target.closest(NON_BACKGROUND) !== null || hasOwnText(target))) return
   if (healTimer !== null) {
     clearTimeout(healTimer)
     healTimer = null
@@ -214,38 +219,20 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div
-    v-if="visible"
-    class="bb-overlay"
-    :class="{ 'bb-healing': healing }"
-    :style="{ left: `${x}px`, top: `${y}px` }"
-    aria-hidden="true"
-  >
+  <div v-if="visible" class="bb-overlay" :class="{ 'bb-healing': healing }" :style="{ left: `${x}px`, top: `${y}px` }"
+    aria-hidden="true">
     <template v-if="active || healing">
       <span :key="stage" class="bb-frame" />
-      <!-- Пиксельные трещины: сетка 16×16, каждый пиксель — rect -->
       <svg class="bb-cracks" viewBox="0 0 16 16" shape-rendering="crispEdges">
-        <rect
-          v-for="p in visiblePixels"
-          :key="p[0] + '-' + p[1]"
-          :x="p[0]"
-          :y="p[1]"
-          width="1"
-          height="1"
-          :style="{ transitionDelay: healing ? `${(STAGES - p[2]) * 25}ms` : '0ms' }"
-        />
+        <rect v-for="p in visiblePixels" :key="p[0] + '-' + p[1]" :x="p[0]" :y="p[1]" width="1" height="1"
+          :style="{ transitionDelay: healing ? `${(STAGES - p[2]) * 25}ms` : '0ms' }" />
       </svg>
     </template>
-    <i
-      v-for="p in particles"
-      :key="p.id"
-      class="bb-particle"
-      :style="{
-        '--dx': `${p.dx}px`,
-        '--dy': `${p.dy}px`,
-        '--c': p.color,
-        animationDelay: `${p.delay}ms`,
-      }"
-    />
+    <i v-for="p in particles" :key="p.id" class="bb-particle" :style="{
+      '--dx': `${p.dx}px`,
+      '--dy': `${p.dy}px`,
+      '--c': p.color,
+      animationDelay: `${p.delay}ms`,
+    }" />
   </div>
 </template>
