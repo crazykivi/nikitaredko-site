@@ -19,7 +19,7 @@ import Giscus from '@giscus/vue';
 
 const route = useRoute();
 const router = useRouter();
-const { mode, effectiveDark } = useTheme()
+const { effectiveDark } = useTheme()
 
 const article = ref<Article | null>(null);
 const loading = ref(true);
