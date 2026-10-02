@@ -10,6 +10,10 @@ import { CELL, cellAtPointer, hash2, type GridCell } from '../utils/minecraftGri
 interface CrackPixel { x: number; y: number; stage: number; alpha: number }
 
 const HOLD_MS = 2000
+const TOUCH_ARM_MS = 260
+const TOUCH_SLOP_PX = 10
+const CONTEXTMENU_GUARD_MS = 700
+
 const NON_BACKGROUND = [
   'a', 'button', 'input', 'textarea', 'select', 'summary', 'label',
   'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'pre', 'code', 'time',
@@ -76,6 +80,12 @@ const visiblePixels = computed<CrackPixel[]>(() => {
 const visible = computed(() => active.value || healing.value || particles.value.length > 0)
 
 let pointerId: number | null = null
+let pendingTouch = false
+let pendingTimer: number | null = null
+let startClientX = 0
+let startClientY = 0
+let lastPointerType = ''
+let lastGestureEndAt = 0
 let stepTimer: number | null = null
 let healTimer: number | null = null
 let particleTimer: number | null = null
@@ -86,6 +96,26 @@ const stopStepTimer = () => {
     clearInterval(stepTimer)
     stepTimer = null
   }
+}
+
+const abortPending = () => {
+  if (pendingTimer !== null) {
+    clearTimeout(pendingTimer)
+    pendingTimer = null
+  }
+  pendingTouch = false
+  pointerId = null
+}
+
+const beginMining = (x: number, y: number) => {
+  target.value = cellAtPointer(x, y)
+  stage.value = 0
+  particles.value = []
+  active.value = true
+  document.documentElement.classList.add('is-breaking')
+  playMcSound('dig', { volume: 0.45, rate: 1.4 })
+  stopStepTimer()
+  stepTimer = window.setInterval(step, STEP_MS)
 }
 
 const shakeScreen = () => {
@@ -117,6 +147,7 @@ const spawnParticles = () => {
 }
 
 const complete = () => {
+  lastGestureEndAt = Date.now()
   stopStepTimer()
   active.value = false
   pointerId = null
@@ -132,6 +163,7 @@ const complete = () => {
 
 const cancel = () => {
   if (!active.value) return
+  lastGestureEndAt = Date.now()
   stopStepTimer()
   active.value = false
   healing.value = true
@@ -177,18 +209,32 @@ const onPointerDown = (e: PointerEvent) => {
   }
   unlockAudio()
   pointerId = e.pointerId
-  target.value = cellAtPointer(e.clientX, e.clientY)
-  stage.value = 0
-  particles.value = []
-  active.value = true
-  document.documentElement.classList.add('is-breaking')
-  playMcSound('dig', { volume: 0.45, rate: 1.4 })
-  stopStepTimer()
-  stepTimer = window.setInterval(step, STEP_MS)
+  lastPointerType = e.pointerType
+  startClientX = e.clientX
+  startClientY = e.clientY
+
+  if (e.pointerType === 'touch') {
+    pendingTouch = true
+    if (pendingTimer !== null) clearTimeout(pendingTimer)
+    pendingTimer = window.setTimeout(() => {
+      pendingTimer = null
+      if (pointerId !== e.pointerId) return
+      pendingTouch = false
+      beginMining(e.clientX, e.clientY)
+    }, TOUCH_ARM_MS)
+    return
+  }
+  beginMining(e.clientX, e.clientY)
 }
 
 const onPointerMove = (e: PointerEvent) => {
   if (e.pointerId !== pointerId) return
+  if (pendingTouch) {
+    if (Math.hypot(e.clientX - startClientX, e.clientY - startClientY) > TOUCH_SLOP_PX) {
+      abortPending()
+    }
+    return
+  }
   if (!active.value) return
   const el = e.target as Element | null
   if (el && (el.closest(NON_BACKGROUND) !== null || hasOwnText(el))) {
@@ -205,6 +251,11 @@ const onPointerMove = (e: PointerEvent) => {
 
 const onPointerEnd = (e: PointerEvent) => {
   if (e.pointerId !== pointerId) return
+  lastGestureEndAt = Date.now()
+  if (pendingTouch) {
+    abortPending()
+    return
+  }
   cancel()
 }
 
@@ -215,7 +266,11 @@ const onKeyDown = (e: KeyboardEvent) => {
 }
 
 const onContextMenu = (e: MouseEvent) => {
-  if (pointerId !== null) e.preventDefault()
+  const guard =
+    lastPointerType === 'touch' && Date.now() - lastGestureEndAt < CONTEXTMENU_GUARD_MS
+  if (pointerId !== null || pendingTouch || guard) {
+    e.preventDefault()
+  }
 }
 
 onMounted(() => {
@@ -237,6 +292,7 @@ onUnmounted(() => {
   window.removeEventListener('keydown', onKeyDown)
   window.removeEventListener('contextmenu', onContextMenu, true)
   stopStepTimer()
+  if (pendingTimer !== null) clearTimeout(pendingTimer)
   if (healTimer !== null) clearTimeout(healTimer)
   if (particleTimer !== null) clearTimeout(particleTimer)
 })
@@ -257,20 +313,20 @@ onUnmounted(() => {
   >
     <template v-if="active || healing">
       <span :key="stage" class="bb-frame" />
-<svg class="bb-cracks" viewBox="0 0 16 16" shape-rendering="crispEdges">
-  <rect
-    v-for="p in visiblePixels"
-    :key="p.x + '-' + p.y"
-    :x="p.x"
-    :y="p.y"
-    width="1"
-    height="1"
-    :style="{
-      '--a': p.alpha,
-      transitionDelay: healing ? `${(STAGES - p.stage) * 25}ms` : '0ms',
-    }"
-  />
-</svg>
+      <svg class="bb-cracks" viewBox="0 0 16 16" shape-rendering="crispEdges">
+        <rect
+          v-for="p in visiblePixels"
+          :key="p.x + '-' + p.y"
+          :x="p.x"
+          :y="p.y"
+          width="1"
+          height="1"
+          :style="{
+            '--a': p.alpha,
+            transitionDelay: healing ? `${(STAGES - p.stage) * 25}ms` : '0ms',
+          }"
+        />
+      </svg>
     </template>
     <i
       v-for="p in particles"
