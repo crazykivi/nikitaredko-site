@@ -25,13 +25,32 @@
 }
 
 .charcoal body {
-    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.75);
-    background-color: #241c13;
-    background-image: url('/dirt.svg');
-    background-size: 192px 192px;
-    background-repeat: repeat;
-    position: relative;
-    overflow-x: hidden;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.75);
+  background-color: #241c13;
+
+  background-image:
+    /* linear-gradient(
+      to right,
+      rgba(255, 220, 150, 0.25) 1px,
+      transparent 1px
+    ),
+
+    linear-gradient(
+      to bottom,
+      rgba(255, 220, 150, 0.25) 1px,
+      transparent 1px
+    ), */
+
+    url('/dirt.svg');
+
+  background-size:
+    192px 192px,
+    192px 192px,
+    192px 192px;
+
+  background-repeat: repeat;
+  position: relative;
+  overflow-x: hidden;
 }
 
 .charcoal .min-h-screen.bg-background {
@@ -732,4 +751,20 @@
     .charcoal .minecraft-icon:hover .mc-creeper {
         animation: none;
     }
+}
+
+.mc-depth-layer {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.mc-depth-stone {
+    position: absolute;
+    background-color: #4f4f4f;
+    background-image: url('/cobblestone.svg');
+    background-size: var(--bg) var(--bg);
+    background-repeat: repeat;
 }

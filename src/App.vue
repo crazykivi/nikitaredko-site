@@ -15,7 +15,7 @@ import CommandPalette from './components/CommandPalette.vue'
 import OfflineBanner from './components/OfflineBanner.vue'
 import UpdateToast from './components/UpdateToast.vue'
 import BlockBreakOverlay from './components/BlockBreakOverlay.vue'
-
+import MinecraftDepthBackground from './components/MinecraftDepthBackground.vue'
 
 const { mode } = useTheme()
 useCaveSounds(mode)
@@ -28,7 +28,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col bg-background text-foreground">
+  <div class="relative min-h-screen flex flex-col bg-background text-foreground">
+    <MinecraftDepthBackground />
     <LoadingBar />
     <AppHeader />
     <OfflineBanner />
