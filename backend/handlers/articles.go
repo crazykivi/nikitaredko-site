@@ -3,6 +3,8 @@ package handlers
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -28,6 +30,7 @@ var ErrOutlineNotFound = errors.New("outline resource not found")
 var reAttachmentID = regexp.MustCompile(`^[a-zA-Z0-9\-_]+$`)
 
 const maxCacheCorruptionRetries = 2
+const attachmentCacheControl = "public, max-age=3600"
 
 type ArticleHandler struct {
 	outlineURL            string
@@ -103,6 +106,7 @@ type FeedResponse struct {
 type AttachmentCache struct {
 	Body        []byte
 	ContentType string
+	ETag        string
 	Headers     map[string]string
 }
 
@@ -945,6 +949,12 @@ func (h *ArticleHandler) ProxyOutlineAttachment(c *gin.Context) {
 	cacheKey := "attachment_" + id
 	if cached, found := h.cache.Get(cacheKey); found {
 		if data, ok := cached.(*AttachmentCache); ok {
+			if data.ETag != "" && c.GetHeader("If-None-Match") == data.ETag {
+				c.Header("Cache-Control", attachmentCacheControl)
+				c.Header("ETag", data.ETag)
+				c.Status(http.StatusNotModified)
+				return
+			}
 			for k, v := range data.Headers {
 				c.Header(k, v)
 			}
@@ -986,17 +996,35 @@ func (h *ArticleHandler) ProxyOutlineAttachment(c *gin.Context) {
 		c.JSON(http.StatusGatewayTimeout, gin.H{"error": "Attachment too large"})
 		return
 	}
+	if len(body) == 0 {
+		c.JSON(http.StatusBadGateway, gin.H{"error": "Empty attachment from upstream"})
+		return
+	}
 
 	contentType := resp.Header.Get("Content-Type")
+
+	sum := sha256.Sum256(body)
+	etag := fmt.Sprintf(`"att-%s"`, hex.EncodeToString(sum[:16]))
+
+	if c.GetHeader("If-None-Match") == etag {
+		c.Header("Cache-Control", attachmentCacheControl)
+		c.Header("ETag", etag)
+		c.Status(http.StatusNotModified)
+		return
+	}
+
 	h.cache.Set(cacheKey, &AttachmentCache{
 		Body:        body,
 		ContentType: contentType,
+		ETag:        etag,
 		Headers: map[string]string{
-			"Cache-Control": "public, max-age=3600",
+			"Cache-Control": attachmentCacheControl,
+			"ETag":          etag,
 		},
 	})
 
-	c.Header("Cache-Control", "public, max-age=3600")
+	c.Header("Cache-Control", attachmentCacheControl)
+	c.Header("ETag", etag)
 	c.Data(http.StatusOK, contentType, body)
 }
 
