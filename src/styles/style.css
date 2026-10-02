@@ -32,6 +32,7 @@
     --foreground: #e8e8e8;
     --muted: #a8a8a8;
     --border: #4c4c4c;
+    --bb-crack: rgb(0 0 0 / 0.85);
   }
 
   html,
@@ -205,10 +206,7 @@ html.bb-shake {
 }
 
 .bb-overlay {
-  position: fixed;
-  width: 112px;
-  height: 112px;
-  margin: -56px 0 0 -56px;
+  position: absolute;
   z-index: 99990;
   pointer-events: none;
 }
@@ -220,6 +218,11 @@ html.bb-shake {
   outline-offset: -1px;
   background: rgb(255 255 255 / 0.07);
   animation: bb-pulse 0.12s ease-out;
+}
+
+.charcoal .bb-frame {
+  outline: none !important;
+  outline-offset: auto;
 }
 
 .bb-cracks {
@@ -248,6 +251,16 @@ html.bb-shake {
 .bb-healing .bb-cracks path {
   opacity: 0;
   transition: opacity 0.18s linear;
+}
+
+.bb-cracks rect {
+  fill: var(--bb-crack);
+  opacity: var(--a, 0.92);
+  transition: opacity 0.12s linear;
+}
+
+.bb-healing .bb-cracks rect {
+  opacity: 0;
 }
 
 .bb-particle {

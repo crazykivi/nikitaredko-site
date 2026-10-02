@@ -5,9 +5,11 @@ import { mcBlockTransition } from '../utils/mcTransition'
 import { useBlockBreak } from '../composables/useBlockBreak'
 import { playMcSound } from '../utils/mcSounds'
 import { unlockAudio } from '../utils/digSound'
+import { CELL, cellAtPointer, hash2, type GridCell } from '../utils/minecraftGrid'
+
+interface CrackPixel { x: number; y: number; stage: number; alpha: number }
 
 const HOLD_MS = 2000
-const CANCEL_PX = 12
 const NON_BACKGROUND = [
   'a', 'button', 'input', 'textarea', 'select', 'summary', 'label',
   'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'pre', 'code', 'time',
@@ -41,6 +43,12 @@ const CRACK_PIXELS: Array<[number, number, number]> = [
   [5, 3, 9], [11, 13, 9], [3, 5, 9], [13, 11, 9],
   [6, 13, 9], [10, 2, 9], [2, 9, 9], [14, 7, 9],
 ]
+const pixelAlpha = (x: number, y: number): number => {
+  const r = hash2(x * 3 + 11, y * 5 + 17)
+  if (r < 0.58) return 0.92
+  if (r < 0.85) return 0.55
+  return 0.32
+}
 
 const STAGES = 10
 const STEP_MS = HOLD_MS / STAGES
@@ -50,16 +58,24 @@ const { mode, effectiveDark, enterCharcoal, exitCharcoal } = useTheme()
 
 const active = ref(false)
 const healing = ref(false)
-const x = ref(0)
-const y = ref(0)
+const target = ref<GridCell | null>(null)
 const stage = ref(0)
 const particles = ref<Array<{ id: number; dx: number; dy: number; color: string; delay: number }>>([])
-const visiblePixels = computed(() => CRACK_PIXELS.filter((p) => p[2] <= stage.value))
+const visiblePixels = computed<CrackPixel[]>(() => {
+  const core: CrackPixel[] = CRACK_PIXELS
+    .filter((p) => p[2] <= stage.value)
+    .map((p) => ({ x: p[0], y: p[1], stage: p[2], alpha: pixelAlpha(p[0], p[1]) }))
+  const chips: CrackPixel[] = []
+  for (const p of core) {
+    const r = hash2(p.x * 7 + 1, p.y * 13 + 3)
+    if (r > 0.35) continue
+    chips.push({ x: p.x + (r < 0.17 ? 1 : 0), y: p.y + (r < 0.17 ? 0 : 1), stage: p.stage, alpha: 0.28 })
+  }
+  return [...core, ...chips]
+})
 const visible = computed(() => active.value || healing.value || particles.value.length > 0)
 
 let pointerId: number | null = null
-let startX = 0
-let startY = 0
 let stepTimer: number | null = null
 let healTimer: number | null = null
 let particleTimer: number | null = null
@@ -152,8 +168,8 @@ const onPointerDown = (e: PointerEvent) => {
   if (active.value || !e.isPrimary) return
   if (e.pointerType === 'mouse' && e.button !== 0) return
   if (document.querySelector('[role="dialog"]')) return
-  const target = e.target as Element | null
-  if (target && (target.closest(NON_BACKGROUND) !== null || hasOwnText(target))) return
+  const el = e.target as Element | null
+  if (el && (el.closest(NON_BACKGROUND) !== null || hasOwnText(el))) return
   if (healTimer !== null) {
     clearTimeout(healTimer)
     healTimer = null
@@ -161,10 +177,7 @@ const onPointerDown = (e: PointerEvent) => {
   }
   unlockAudio()
   pointerId = e.pointerId
-  startX = e.clientX
-  startY = e.clientY
-  x.value = e.clientX
-  y.value = e.clientY
+  target.value = cellAtPointer(e.clientX, e.clientY)
   stage.value = 0
   particles.value = []
   active.value = true
@@ -176,7 +189,18 @@ const onPointerDown = (e: PointerEvent) => {
 
 const onPointerMove = (e: PointerEvent) => {
   if (e.pointerId !== pointerId) return
-  if (Math.hypot(e.clientX - startX, e.clientY - startY) > CANCEL_PX) cancel()
+  if (!active.value) return
+  const el = e.target as Element | null
+  if (el && (el.closest(NON_BACKGROUND) !== null || hasOwnText(el))) {
+    cancel()
+    return
+  }
+  const c = cellAtPointer(e.clientX, e.clientY)
+  const t = target.value
+  if (!t || c.col !== t.col || c.row !== t.row) {
+    target.value = c
+    stage.value = 0
+  }
 }
 
 const onPointerEnd = (e: PointerEvent) => {
@@ -219,20 +243,45 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div v-if="visible" class="bb-overlay" :class="{ 'bb-healing': healing }" :style="{ left: `${x}px`, top: `${y}px` }"
-    aria-hidden="true">
+  <div
+    v-if="visible && target"
+    class="bb-overlay"
+    :class="{ 'bb-healing': healing }"
+    :style="{
+      left: `${target.left}px`,
+      top: `${target.top}px`,
+      width: `${CELL}px`,
+      height: `${CELL}px`,
+    }"
+    aria-hidden="true"
+  >
     <template v-if="active || healing">
       <span :key="stage" class="bb-frame" />
-      <svg class="bb-cracks" viewBox="0 0 16 16" shape-rendering="crispEdges">
-        <rect v-for="p in visiblePixels" :key="p[0] + '-' + p[1]" :x="p[0]" :y="p[1]" width="1" height="1"
-          :style="{ transitionDelay: healing ? `${(STAGES - p[2]) * 25}ms` : '0ms' }" />
-      </svg>
+<svg class="bb-cracks" viewBox="0 0 16 16" shape-rendering="crispEdges">
+  <rect
+    v-for="p in visiblePixels"
+    :key="p.x + '-' + p.y"
+    :x="p.x"
+    :y="p.y"
+    width="1"
+    height="1"
+    :style="{
+      '--a': p.alpha,
+      transitionDelay: healing ? `${(STAGES - p.stage) * 25}ms` : '0ms',
+    }"
+  />
+</svg>
     </template>
-    <i v-for="p in particles" :key="p.id" class="bb-particle" :style="{
-      '--dx': `${p.dx}px`,
-      '--dy': `${p.dy}px`,
-      '--c': p.color,
-      animationDelay: `${p.delay}ms`,
-    }" />
+    <i
+      v-for="p in particles"
+      :key="p.id"
+      class="bb-particle"
+      :style="{
+        '--dx': `${p.dx}px`,
+        '--dy': `${p.dy}px`,
+        '--c': p.color,
+        animationDelay: `${p.delay}ms`,
+      }"
+    />
   </div>
 </template>
