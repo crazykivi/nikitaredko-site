@@ -213,7 +213,7 @@ jobs:
             cp /etc/nikitaredko-site/.env.test .env
             export IMAGE_NAME="ghcr.io/${{ github.repository }}:test-${{ github.ref_name }}"
             export CONTAINER_NAME="nikitaredko-site-test"
-            export PORT="8081"
+            export PORT="8082"
             docker compose -p nikitaredko-test pull
             docker compose -p nikitaredko-test up -d
             
@@ -235,7 +235,7 @@ jobs:
             RETRY_COUNT=0
             
             while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-              if curl -f -s http://localhost:8081/api/cache/health > /dev/null 2>&1; then
+              if curl -f -s http://localhost:8082/api/cache/health > /dev/null 2>&1; then
                 echo ">>> Health check PASSED"
                 exit 0
               fi
