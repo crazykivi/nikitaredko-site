@@ -765,7 +765,7 @@
 .mc-depth-stone {
     position: absolute;
     background-color: #4f4f4f;
-    background-image: url('/cobblestone.svg');
+    background-image: url('/stone.svg');
     background-size: var(--bg) var(--bg);
     background-repeat: repeat;
 }
@@ -780,14 +780,6 @@
 
 .charcoal .article-description {
     max-width: 100%;
-}
-
-.mc-depth-stone {
-  position: absolute;
-  background-color: #4f4f4f;
-  background-image: url('/cobblestone.svg');
-  background-size: var(--bg) var(--bg);
-  background-repeat: repeat;
 }
 
 .mc-depth-deepslate {
