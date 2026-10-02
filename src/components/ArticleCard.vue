@@ -42,7 +42,7 @@ const visibleTags = computed(() => tags.value.slice(0, MAX_TAGS))
         </svg>
       </div>
       <p
-        class="mt-2.5 max-w-2xl text-[15px] leading-relaxed text-muted line-clamp-2 md:text-base"
+        class="mt-2.5 max-w-2xl text-[15px] leading-relaxed text-muted line-clamp-2 md:text-base article-description"
         v-html="excerptHtml"
       />
       <div class="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 font-mono text-[11px] text-muted">

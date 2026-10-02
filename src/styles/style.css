@@ -28,11 +28,11 @@
     --foreground: 232 232 232;
     --muted: 168 168 168;
     --border: 76 76 76; */
-    --background: #1c1c1c;
-    --foreground: #e8e8e8;
-    --muted: #a8a8a8;
-    --border: #4c4c4c;
-    --bb-crack: rgb(0 0 0 / 0.85);
+  --background: #1c1c1c;
+  --foreground: #ffffff;
+  --muted: #c9c9c9;
+  --border: #8b8b8b;
+  --bb-crack: rgb(0 0 0 / 0.85);
   }
 
   html,

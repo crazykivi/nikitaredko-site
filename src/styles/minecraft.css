@@ -25,11 +25,11 @@
 }
 
 .charcoal body {
-  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.75);
-  background-color: #241c13;
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.75);
+    background-color: #241c13;
 
-  background-image:
-    /* linear-gradient(
+    background-image:
+        /* linear-gradient(
       to right,
       rgba(255, 220, 150, 0.25) 1px,
       transparent 1px
@@ -40,17 +40,18 @@
       rgba(255, 220, 150, 0.25) 1px,
       transparent 1px
     ), */
+        linear-gradient(var(--mc-scrim), var(--mc-scrim)),
+        url('/dirt.svg');
 
-    url('/dirt.svg');
-
-  background-size:
-    192px 192px,
-    192px 192px,
-    192px 192px;
-
-  background-repeat: repeat;
-  position: relative;
-  overflow-x: hidden;
+    background-size:
+        auto,
+        192px 192px;
+    background-repeat:
+        no-repeat,
+        repeat;
+    background-repeat: repeat;
+    position: relative;
+    overflow-x: hidden;
 }
 
 .charcoal .min-h-screen.bg-background {
@@ -151,7 +152,7 @@
 }
 
 .charcoal {
-    scrollbar-color: var(--mc-stone) #262626;
+  --mc-scrim: rgba(0, 0, 0, 0.15);
 }
 
 .charcoal ::-webkit-scrollbar {
@@ -767,4 +768,16 @@
     background-image: url('/cobblestone.svg');
     background-size: var(--bg) var(--bg);
     background-repeat: repeat;
+}
+
+.mc-depth-layer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.15);
+    pointer-events: none;
+}
+
+.charcoal .article-description {
+    max-width: 100%;
 }
