@@ -3,11 +3,6 @@ export const BG_SIZE = 192
 const SURFACE_PX = 800
 const TRANSITION_PX = 800
 const STONE_MAX = 0.985
-
-const DEEPSLATE_START_PX = 6000
-const DEEPSLATE_TRANSITION_PX = 800
-const DEEPSLATE_MAX = 0.985
-
 const NOISE = 0.14
 const clamp = (v: number, min = 0, max = 1) => Math.min(max, Math.max(min, v))
 const smoothstep = (t: number) => t * t * (3 - 2 * t)
@@ -31,23 +26,11 @@ const stoneChance = (x: number, absY: number) => {
     return clamp(base + jitter)
 }
 
-const deepslateChance = (x: number, absY: number) => {
-    if (absY < DEEPSLATE_START_PX) return 0
-    const t = clamp((absY - DEEPSLATE_START_PX) / DEEPSLATE_TRANSITION_PX)
-    const base = smoothstep(t) * DEEPSLATE_MAX
-    const jitter = (hash2(x * 13 + 7, absY * 17 + 11) - 0.5) * NOISE
-    return clamp(base + jitter)
-}
-
-export type Material = 'dirt' | 'stone' | 'deepslate'
+export type Material = 'dirt' | 'stone'
 
 export const materialAtCell = (col: number, row: number): Material => {
     const absY = row * CELL
     const r = hash2(col, row)
-    
-    const dChance = deepslateChance(col, absY)
-    if (r < dChance) return 'deepslate'
-
     const sChance = stoneChance(col, absY)
     if (r < sChance) return 'stone'
 
@@ -146,4 +129,54 @@ export function cellClipPath(col: number, row: number): string {
     }
 
     return `polygon(${pts.join(',')})`
+}
+
+export type Ore = 'coal' | 'iron' | 'gold' | 'lapis' | 'diamond' | 'emerald'
+
+// Распределение привязано к длине статьи:
+// SURFACE_PX +- Y 64 (поверхность), низ страницы +- Y -64 (пик алмаза).
+// Поэтому руда есть по всей странице при любой длине статьи.
+const ORE_Y_TOP = 64
+const ORE_Y_BOTTOM = -64
+
+// Треугольное распределение: 0 на краях диапазона, 1 в пике.
+const triangle = (y: number, min: number, peak: number, max: number) =>
+    y < min || y > max ? 0 : y < peak ? (y - min) / (peak - min) : (max - y) / (max - peak)
+
+const ORE_CHANCE: Record<Ore, number> = {
+    coal: 0.055,
+    iron: 0.05,
+    gold: 0.03,
+    lapis: 0.03,
+    diamond: 0.018,
+    emerald: 0.008,
+}
+
+const ORE_WEIGHT: Record<Ore, (y: number) => number> = {
+    coal: (y) => triangle(y, 0, 96, 320),
+    iron: (y) => triangle(y, -64, 16, 72),
+    gold: (y) => triangle(y, -64, -16, 32),
+    lapis: (y) => triangle(y, -64, 0, 64),
+    diamond: (y) => triangle(y, -64, -64, 16),
+    emerald: (y) => triangle(y, -16, 232, 320),
+}
+
+export const ORE_PX = CELL
+
+// Порядок важен только для кумулятивного ролла: одна клетка — максимум одна руда.
+const ORE_ORDER: Ore[] = ['coal', 'iron', 'gold', 'lapis', 'diamond', 'emerald']
+
+export const oreAtCell = (col: number, row: number, docHeight: number): Ore | null => {
+    if (materialAtCell(col, row) === 'dirt') return null
+
+    const span = Math.max(CELL, docHeight - SURFACE_PX)
+    const y = ORE_Y_TOP - ((row * CELL - SURFACE_PX) / span) * (ORE_Y_TOP - ORE_Y_BOTTOM)
+
+    const r = hash2(col * 31 + 17, row * 47 + 29)
+    let acc = 0
+    for (const ore of ORE_ORDER) {
+        acc += ORE_WEIGHT[ore](y) * ORE_CHANCE[ore]
+        if (r < acc) return ore
+    }
+    return null
 }

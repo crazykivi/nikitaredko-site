@@ -1,7 +1,20 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useTheme } from '../composables/useTheme'
-import { CELL, BG_SIZE, CLIP_MARGIN, cellClipPath, materialAtCell, type Material } from '../utils/minecraftGrid'
+import {
+    CELL, BG_SIZE, CLIP_MARGIN, ORE_PX,
+    cellClipPath, materialAtCell, oreAtCell,
+    type Material, type Ore,
+} from '../utils/minecraftGrid'
+
+const ORE_TEX: Record<Ore, string> = {
+    coal: `${import.meta.env.BASE_URL}stone_coal.svg`,
+    iron: `${import.meta.env.BASE_URL}stone_iron.svg`,
+    gold: `${import.meta.env.BASE_URL}stone_gold.svg`,
+    lapis: `${import.meta.env.BASE_URL}stone_lapis.svg`,
+    diamond: `${import.meta.env.BASE_URL}stone_diamond.svg`,
+    emerald: `${import.meta.env.BASE_URL}stone_emerald.svg`,
+}
 
 const BUFFER_ROWS = 2
 const { mode } = useTheme()
@@ -15,6 +28,7 @@ interface Stone {
     py: number
     clip: string
     material: Material
+    ore: string | null
 }
 
 let rafId = 0
@@ -48,15 +62,16 @@ const recomputeVisible = () => {
     lastCols = nextCols
 
     const next: Stone[] = []
-    
+
     for (let absRow = startRow; absRow <= endRow; absRow++) {
         const absY = absRow * CELL
         for (let x = 0; x < nextCols; x++) {
             const mat = materialAtCell(x, absRow)
-            if (mat === 'stone' || mat === 'deepslate') {
+            if (mat === 'stone') {
                 const M = CLIP_MARGIN
                 const ox = x * CELL - M
                 const oy = absY - M
+                const ore = oreAtCell(x, absRow, scrollHeight)
                 next.push({
                     key: `${absRow}:${x}`,
                     left: ox,
@@ -65,6 +80,7 @@ const recomputeVisible = () => {
                     py: -(((oy % BG_SIZE) + BG_SIZE) % BG_SIZE),
                     clip: cellClipPath(x, absRow),
                     material: mat,
+                    ore: ore ? ORE_TEX[ore] : null,
                 })
             }
         }
@@ -116,6 +132,24 @@ onUnmounted(() => {
             height: `${CELL + CLIP_MARGIN * 2}px`,
             backgroundPosition: `${s.px}px ${s.py}px`,
             clipPath: s.clip,
-        }"></div>
+        }">
+            <div v-if="s.ore" class="mc-depth-ore" :style="{
+                left: `${CLIP_MARGIN}px`,
+                top: `${CLIP_MARGIN}px`,
+                width: `${ORE_PX}px`,
+                height: `${ORE_PX}px`,
+                backgroundImage: `url(${s.ore})`,
+            }"></div>
+        </div>
     </div>
 </template>
+
+<style scoped>
+.mc-depth-ore {
+    position: absolute;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+    pointer-events: none;
+}
+</style>
