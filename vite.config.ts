@@ -101,7 +101,7 @@ export default defineConfig({
             options: {
               cacheName: 'attachments',
               cacheableResponse: {
-                statuses: [0, 200]
+                statuses: [200],
               },
               expiration: {
                 maxEntries: 100,
