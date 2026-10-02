@@ -201,6 +201,13 @@ const onPointerDown = (e: PointerEvent) => {
   if (e.pointerType === 'mouse' && e.button !== 0) return
   if (document.querySelector('[role="dialog"]')) return
   const el = e.target as Element | null
+  if (el === document.documentElement || el === document.body) {
+    return
+  }
+  const rect = document.documentElement.getBoundingClientRect()
+  if (e.clientX >= rect.right || e.clientY >= rect.bottom) {
+    return
+  }
   if (el && (el.closest(NON_BACKGROUND) !== null || hasOwnText(el))) return
   if (healTimer !== null) {
     clearTimeout(healTimer)
@@ -236,6 +243,11 @@ const onPointerMove = (e: PointerEvent) => {
     return
   }
   if (!active.value) return
+  const rect = document.documentElement.getBoundingClientRect()
+  if (e.clientX >= rect.right || e.clientY >= rect.bottom) {
+    cancel()
+    return
+  }
   const el = e.target as Element | null
   if (el && (el.closest(NON_BACKGROUND) !== null || hasOwnText(el))) {
     cancel()
@@ -299,45 +311,26 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div
-    v-if="visible && target"
-    class="bb-overlay"
-    :class="{ 'bb-healing': healing }"
-    :style="{
-      left: `${target.left}px`,
-      top: `${target.top}px`,
-      width: `${CELL}px`,
-      height: `${CELL}px`,
-    }"
-    aria-hidden="true"
-  >
+  <div v-if="visible && target" class="bb-overlay" :class="{ 'bb-healing': healing }" :style="{
+    left: `${target.left}px`,
+    top: `${target.top}px`,
+    width: `${CELL}px`,
+    height: `${CELL}px`,
+  }" aria-hidden="true">
     <template v-if="active || healing">
       <span :key="stage" class="bb-frame" />
       <svg class="bb-cracks" viewBox="0 0 16 16" shape-rendering="crispEdges">
-        <rect
-          v-for="p in visiblePixels"
-          :key="p.x + '-' + p.y"
-          :x="p.x"
-          :y="p.y"
-          width="1"
-          height="1"
-          :style="{
-            '--a': p.alpha,
-            transitionDelay: healing ? `${(STAGES - p.stage) * 25}ms` : '0ms',
-          }"
-        />
+        <rect v-for="p in visiblePixels" :key="p.x + '-' + p.y" :x="p.x" :y="p.y" width="1" height="1" :style="{
+          '--a': p.alpha,
+          transitionDelay: healing ? `${(STAGES - p.stage) * 25}ms` : '0ms',
+        }" />
       </svg>
     </template>
-    <i
-      v-for="p in particles"
-      :key="p.id"
-      class="bb-particle"
-      :style="{
-        '--dx': `${p.dx}px`,
-        '--dy': `${p.dy}px`,
-        '--c': p.color,
-        animationDelay: `${p.delay}ms`,
-      }"
-    />
+    <i v-for="p in particles" :key="p.id" class="bb-particle" :style="{
+      '--dx': `${p.dx}px`,
+      '--dy': `${p.dy}px`,
+      '--c': p.color,
+      animationDelay: `${p.delay}ms`,
+    }" />
   </div>
 </template>
