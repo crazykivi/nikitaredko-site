@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useTheme } from '../composables/useTheme'
-import { CELL, BG_SIZE, CLIP_MARGIN, cellClipPath, materialAtCell } from '../utils/minecraftGrid'
+import { CELL, BG_SIZE, CLIP_MARGIN, cellClipPath, materialAtCell, type Material } from '../utils/minecraftGrid'
 
 const BUFFER_ROWS = 2
 const { mode } = useTheme()
@@ -14,6 +14,7 @@ interface Stone {
     px: number
     py: number
     clip: string
+    material: Material
 }
 
 let rafId = 0
@@ -47,11 +48,12 @@ const recomputeVisible = () => {
     lastCols = nextCols
 
     const next: Stone[] = []
-
+    
     for (let absRow = startRow; absRow <= endRow; absRow++) {
         const absY = absRow * CELL
         for (let x = 0; x < nextCols; x++) {
-            if (materialAtCell(x, absRow) === 'stone') {
+            const mat = materialAtCell(x, absRow)
+            if (mat === 'stone' || mat === 'deepslate') {
                 const M = CLIP_MARGIN
                 const ox = x * CELL - M
                 const oy = absY - M
@@ -62,6 +64,7 @@ const recomputeVisible = () => {
                     px: -(((ox % BG_SIZE) + BG_SIZE) % BG_SIZE),
                     py: -(((oy % BG_SIZE) + BG_SIZE) % BG_SIZE),
                     clip: cellClipPath(x, absRow),
+                    material: mat,
                 })
             }
         }
@@ -106,7 +109,7 @@ onUnmounted(() => {
 
 <template>
     <div v-if="mode === 'charcoal'" class="mc-depth-layer" :style="{ '--bg': `${BG_SIZE}px` }" aria-hidden="true">
-        <div v-for="s in stones" :key="s.key" class="mc-depth-stone" :style="{
+        <div v-for="s in stones" :key="s.key" :class="['mc-depth-stone', `mc-depth-${s.material}`]" :style="{
             left: `${s.left}px`,
             top: `${s.top}px`,
             width: `${CELL + CLIP_MARGIN * 2}px`,
