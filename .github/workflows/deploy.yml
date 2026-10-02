@@ -206,17 +206,23 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           envs: GITHUB_TOKEN,GITHUB_ACTOR
           script: |
+            set -eu
+
+            echo ">>> Pre-cleaning stale test environment..."
+            cd /opt/nikitaredko
+            docker compose -p nikitaredko-test down --remove-orphans || true
+            docker rm -f nikitaredko-site-test || true
+
             echo ">>> Deploying test version ${{ github.ref_name }}..."
             echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
-            
-            cd /opt/nikitaredko
+
             cp /etc/nikitaredko-site/.env.test .env
             export IMAGE_NAME="ghcr.io/${{ github.repository }}:test-${{ github.ref_name }}"
             export CONTAINER_NAME="nikitaredko-site-test"
             export PORT="8082"
             docker compose -p nikitaredko-test pull
-            docker compose -p nikitaredko-test up -d
-            
+            docker compose -p nikitaredko-test up -d --remove-orphans
+
             echo ">>> Test deployment completed"
 
       - name: Wait and Health Check Test Environment
@@ -227,29 +233,32 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
+            set -eu
+
             echo ">>> Waiting for test environment to start..."
             sleep 10
-            
+
             echo ">>> Running health check on test environment..."
             MAX_RETRIES=10
             RETRY_COUNT=0
-            
-            while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-              if curl -f -s http://localhost:8082/api/cache/health > /dev/null 2>&1; then
+
+            while [ "$RETRY_COUNT" -lt "$MAX_RETRIES" ]; do
+              if curl -f -s http://127.0.0.1:8082/api/cache/health > /dev/null 2>&1; then
                 echo ">>> Health check PASSED"
                 exit 0
               fi
-              
+
               RETRY_COUNT=$((RETRY_COUNT + 1))
               echo ">>> Health check attempt $RETRY_COUNT/$MAX_RETRIES failed, retrying in 5 seconds..."
               sleep 5
             done
-            
+
             echo ">>> Health check FAILED after $MAX_RETRIES attempts"
             exit 1
 
       - name: Cleanup Test Environment
-        if: success()
+        if: always()
+        continue-on-error: true
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -257,14 +266,17 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
+            set -eu
+
             echo ">>> Cleaning up test environment..."
             cd /opt/nikitaredko
-            docker compose -p nikitaredko-test down
+            docker compose -p nikitaredko-test down --remove-orphans || true
             docker rmi ghcr.io/${{ github.repository }}:test-${{ github.ref_name }} || true
             
             echo ">>> Test environment cleaned up"
 
       - name: Deploy to Production
+        id: deploy_prod
         if: success()
         uses: appleboy/ssh-action@v1
         env:
@@ -277,6 +289,8 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           envs: GITHUB_TOKEN,GITHUB_ACTOR
           script: |
+            set -eu
+
             echo ">>> Deploying to production ${{ github.ref_name }}..."
             echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
 
@@ -295,7 +309,7 @@ jobs:
             echo ">>> Production deployment completed successfully!"
 
       - name: Rollback on Failure
-        if: failure()
+        if: failure() && steps.deploy_prod.outcome == 'failure'
         uses: appleboy/ssh-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -307,7 +321,9 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           envs: GITHUB_TOKEN,GITHUB_ACTOR
           script: |
-            echo ">>> Deployment failed! Attempting rollback..."
+            set -eu
+
+            echo ">>> Production deployment failed! Attempting rollback..."
 
             PREV_IMAGE=$(cat /tmp/nikitaredko-prev-image 2>/dev/null || echo "")
 
