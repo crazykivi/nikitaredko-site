@@ -181,8 +181,10 @@
     outline-offset: 2px;
 }
 
-.charcoal img {
-    image-rendering: pixelated;
+.charcoal .prose img,
+.charcoal .article-content img,
+.charcoal figure img {
+    image-rendering: auto;
 }
 
 .charcoal .mc-xp-track {
