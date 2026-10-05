@@ -5,7 +5,7 @@ go 1.27.0
 require (
 	github.com/gin-contrib/cors v1.7.9
 	github.com/gin-gonic/gin v1.12.0
-	github.com/goccy/go-json v0.11.1
+	github.com/goccy/go-json v0.11.2
 	github.com/google/go-cmp v0.7.0
 	github.com/joho/godotenv v1.5.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
