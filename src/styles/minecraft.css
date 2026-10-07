@@ -208,20 +208,20 @@
 }
 
 .mc-transition-cell {
-    transform: scale(0);
-    opacity: 0;
-    box-shadow:
-        inset 3px 3px 0 rgba(255, 255, 255, 0.12),
-        inset -3px -3px 0 rgba(0, 0, 0, 0.55);
-    animation-name: mc-cell-in;
-    animation-timing-function: steps(4, end);
-    animation-fill-mode: forwards;
+  transform: scale(0);
+  opacity: 0;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  animation-name: mc-cell-in;
+  animation-timing-function: steps(4, end);
+  animation-fill-mode: forwards;
 }
 
 .mc-transition-cell.mc-out {
-    animation-name: mc-cell-out;
-    animation-timing-function: steps(4, end);
-    animation-fill-mode: forwards;
+  animation-name: mc-cell-out;
+  animation-timing-function: steps(4, end);
+  animation-fill-mode: both;
 }
 
 @keyframes mc-cell-in {

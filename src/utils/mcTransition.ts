@@ -2,8 +2,11 @@ const CELL = 56 // размер «блока» в px
 const MAX_DELAY = 420 // макс. случайная задержка появления/исчезновения
 const DUR = 180 // длительность анимации одного блока
 
-// палитра «блоков»: уголь / камень / земля
-const PALETTE = ['#1c1c1c', '#242424', '#2e2e2e', '#26190f', '#171717']
+const BASE = import.meta.env.BASE_URL
+const BLOCKS: Array<{ tex: string; color: string }> = [
+    { tex: `${BASE}dirt.svg`, color: '#26190f' },
+    { tex: `${BASE}stone.svg`, color: '#4f4f4f' }
+]
 
 export function mcBlockTransition(apply: () => void): void {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -16,16 +19,19 @@ export function mcBlockTransition(apply: () => void): void {
 
     const overlay = document.createElement('div')
     overlay.className = 'mc-transition'
-    overlay.style.gridTemplateColumns = `repeat(${cols}, 1fr)`
-    overlay.style.gridTemplateRows = `repeat(${rows}, 1fr)`
+    overlay.style.gridTemplateColumns = `repeat(${cols}, ${CELL}px)`
+    overlay.style.gridTemplateRows = `repeat(${rows}, ${CELL}px)`
 
     const cells: HTMLDivElement[] = []
     for (let i = 0; i < cols * rows; i++) {
         const cell = document.createElement('div')
         cell.className = 'mc-transition-cell'
-        cell.style.backgroundColor = PALETTE[(Math.random() * PALETTE.length) | 0]
-        cell.style.animationDelay = `${(Math.random() * MAX_DELAY) | 0}ms`
-        cell.style.animationDuration = `${DUR}ms`
+        const block = BLOCKS[(Math.random() * BLOCKS.length) | 0]
+        cell.style.backgroundColor = block.color
+        cell.style.backgroundImage = `url("${block.tex}")`
+        const inDelay = (Math.random() * MAX_DELAY) | 0
+        cell.style.animationDelay = `${inDelay}ms`
+        cell.dataset.inDelay = String(inDelay)
         overlay.appendChild(cell)
         cells.push(cell)
     }
@@ -36,7 +42,8 @@ export function mcBlockTransition(apply: () => void): void {
 
     window.setTimeout(() => {
         for (const cell of cells) {
-            cell.style.animationDelay = `${(Math.random() * MAX_DELAY) | 0}ms`
+            const inDelay = Number(cell.dataset.inDelay ?? 0)
+            cell.style.animationDelay = `${MAX_DELAY - inDelay}ms`
             cell.classList.add('mc-out')
         }
     }, swapAt + 80)
