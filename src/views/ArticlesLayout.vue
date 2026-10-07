@@ -109,9 +109,9 @@ const toggleSidebar = () => {
   
   if (mode.value === 'charcoal') {
     if (isCollapsing) {
-      playMcSound('piston', { volume: 0.30, rate: 1.2 }) // Закрывание
+      playMcSound('piston_out', { volume: 0.30, rate: 1.2 }) // Закрывание
     } else {
-      playMcSound('piston', { volume: 0.30, rate: 0.8 }) // Открывание
+      playMcSound('piston_in', { volume: 0.30, rate: 0.8 }) // Открывание
     }
   }
   
