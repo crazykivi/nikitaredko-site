@@ -357,7 +357,7 @@ onUnmounted(() => {
       <main class="flex-1 min-w-0">
         <div
           class="lg:hidden sticky top-16 z-30 -mx-4 px-4 py-3 mb-6 bg-background/90 backdrop-blur-sm border-b border-border">
-          <div class="flex gap-2 overflow-x-auto custom-scrollbar pb-1">
+          <div class="flex gap-2 overflow-x-auto custom-scrollbar pb-1" data-no-break>
             <button @click="selectCollectionAndCenter(null, $event)"
               class="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors" :class="!getSelectedCollectionId()
                 ? 'bg-foreground text-background border-foreground'
