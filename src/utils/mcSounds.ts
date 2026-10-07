@@ -17,10 +17,40 @@ const SOURCES: Record<McSoundName, string[]> = {
 }
 
 const players = new Map<string, HTMLAudioElement>()
+const POOL_SOUNDS: Set<McSoundName> = new Set(['ladder'])
+const POOL_SIZE = 4
+const pools = new Map<string, HTMLAudioElement[]>()
+const poolCursor = new Map<string, number>()
 
 function getPlayer(name: McSoundName): HTMLAudioElement | null {
     const sources = SOURCES[name]
     if (!sources || sources.length === 0) return null
+    if (POOL_SOUNDS.has(name)) {
+        const key = `${name}-pool`
+        let pool = pools.get(key)
+        if (!pool) {
+            pool = []
+            for (let i = 0; i < POOL_SIZE; i++) {
+                const src = sources[i % sources.length] 
+                const el = new Audio(src)
+                el.preload = 'auto'
+                pool.push(el)
+            }
+            pools.set(key, pool)
+            poolCursor.set(key, -1)
+        }
+        let idx: number
+        const prev = poolCursor.get(key)!
+        if (pool.length <= 1) {
+            idx = 0
+        } else {
+            do {
+                idx = Math.floor(Math.random() * pool.length)
+            } while (idx === prev)
+        }
+        poolCursor.set(key, idx)
+        return pool[idx]
+    }
     const randomSource = sources[Math.floor(Math.random() * sources.length)]
     const key = `${name}-${randomSource}`
     let el = players.get(key)

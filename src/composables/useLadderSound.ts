@@ -17,9 +17,8 @@ export function useLadderSound() {
         accumulatedScroll += delta
 
         const now = Date.now()
-        // Звук каждые 300px скролла, но не чаще раза в 1.2 секунды
-        if (accumulatedScroll > 300 && now - lastPlayed > 1200) {
-            playMcSound('ladder', { volume: 0.15, rate: 0.9 + Math.random() * 0.2 })
+        if (accumulatedScroll > 250 && now - lastPlayed > 350) {
+            playMcSound('ladder', { volume: 0.10, rate: 0.95 + Math.random() * 0.1 })
             lastPlayed = now
             accumulatedScroll = 0
         }
