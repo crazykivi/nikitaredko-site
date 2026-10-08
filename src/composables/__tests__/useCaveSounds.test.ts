@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import type { ThemeMode } from '../useTheme'
+import type { Ref } from 'vue'
 
 vi.mock('../../utils/mcSounds', () => ({
     playMcSound: vi.fn(),
@@ -21,7 +23,7 @@ describe('useCaveSounds', () => {
         const { mount } = await import('@vue/test-utils')
         const { useCaveSounds } = await import('../useCaveSounds')
 
-        let modeRef!: ReturnType<typeof ref<string>>
+        let modeRef!: Ref<ThemeMode>
         const Comp = defineComponent({
             setup() {
                 modeRef = ref(initial)

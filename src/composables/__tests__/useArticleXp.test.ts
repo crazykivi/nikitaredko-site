@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import type { Ref } from 'vue'
 
 vi.mock('../../utils/mcSounds', () => ({
     playMcSound: vi.fn(),
@@ -34,7 +35,7 @@ describe('useArticleXp', () => {
         const { mount } = await import('@vue/test-utils')
         const { useArticleXp } = await import('../useArticleXp')
 
-        let idRef!: ReturnType<typeof ref<string | null>>
+        let idRef!: Ref<string | null>
         const Comp = defineComponent({
             setup() {
                 idRef = ref<string | null>(articleId)
