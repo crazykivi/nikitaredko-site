@@ -1,0 +1,19 @@
+title = "gitleaks config"
+
+[allowlist]
+description = "Ignore example and template files"
+paths = [
+  '''(^|/)\.env\.example$''',
+  '''(^|/)backend/\.env\.example$''',
+  '''(^|/)\.git/''',
+]
+
+[[rules]]
+id = "outline-api-key"
+description = "Outline API Key"
+regex = '''ol_api_[a-zA-Z0-9]{32}'''
+
+[[rules]]
+id = "generic-secret"
+description = "Generic secret assignment in env files"
+regex = '''(?i)(password|secret|api_key|token|key)\s*[:=]\s*['"]?[a-zA-Z0-9_\-+/=]{16,}['"]?'''
