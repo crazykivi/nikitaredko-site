@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, nextTick, computed, watch } from "vue";
-import type { CommandGroup, Command } from "../types/commandPalette";
+import { computed, nextTick, ref, watch } from "vue";
+import type { Command, CommandGroup } from "../types/commandPalette";
 import CommandPaletteItem from "./CommandPaletteItem.vue";
 
 const props = defineProps<{
@@ -19,17 +19,34 @@ const emit = defineEmits<{
 const listRef = ref<HTMLElement | null>(null);
 let lastHoveredId: string | null = null;
 
-const flatCommands = computed(() => props.groups.flatMap((g) => g.commands));
+const flatCommands = computed(() => props.groups.flatMap((group) => group.commands));
+
+const indexById = computed(() => {
+  const map = new Map<string, number>();
+
+  flatCommands.value.forEach((cmd, index) => {
+    map.set(cmd.id, index);
+  });
+
+  return map;
+});
 
 const onMouseMove = (e: MouseEvent) => {
   const target = e.target as HTMLElement;
   const btn = target.closest("[data-cmd-id]") as HTMLElement | null;
   const id = btn?.getAttribute("data-cmd-id") ?? null;
+
   if (id === lastHoveredId) return;
+
   lastHoveredId = id;
+
   if (!id) return;
-  const idx = flatCommands.value.findIndex((c: Command) => c.id === id);
-  if (idx >= 0 && idx !== props.selectedIndex) emit("select", idx);
+
+  const index = indexById.value.get(id);
+
+  if (index !== undefined && index !== props.selectedIndex) {
+    emit("select", index);
+  }
 };
 
 const onMouseLeave = () => {
@@ -68,7 +85,7 @@ watch(() => props.selectedIndex, scrollToSelected);
         v-for="cmd in group.commands"
         :key="cmd.id"
         :command="cmd"
-        :selected="flatCommands.indexOf(cmd) === selectedIndex"
+        :selected="indexById.get(cmd.id) === selectedIndex"
         :expanded="expandedId === cmd.id"
         @execute="emit('execute', cmd)"
         @pointer-down="emit('pointer-down', cmd.id)"
