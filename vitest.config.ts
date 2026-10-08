@@ -9,6 +9,18 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
+      all: true,
+      include: ['src/**/*.{ts,vue}'],
+      exclude: [
+        'src/**/__tests__/**',
+        'src/**/*.d.ts',
+        'src/types',
+        'src/utils/mcSounds.ts',
+        'src/utils/digSound.ts',
+        'src/utils/mcTransition.ts',
+        'src/components/BlockBreakOverlay.vue',
+        'src/components/MinecraftDepthBackground.vue',
+      ],
     },
   },
 })
