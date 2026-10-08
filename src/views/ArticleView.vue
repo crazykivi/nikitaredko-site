@@ -1,48 +1,56 @@
 <script setup lang="ts">
-import DOMPurify, { type Config as DOMPurifyConfig } from 'dompurify';
-import ReadingProgressBar from '../components/ReadingProgressBar.vue';
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
+import { onMounted, nextTick, ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { getArticle, getArticlesStructured } from "../services/api";
-import { useHead, type ReactiveHead } from '@unhead/vue';
-import { useArticleXp } from '../composables/useArticleXp'
-import { useTheme } from '../composables/useTheme'
-import type { Article, CollectionWithArticles } from "../services/api";
-import type { TOCItem } from '../components/ArticleTOC.vue'
-import FloatingTOC from '../components/FloatingTOC.vue'
-import MarkdownIt from "markdown-it";
-import markdownItContainer from "markdown-it-container";
-import hljs from "highlight.js";
-import "highlight.js/styles/github-dark.css";
-import Giscus from '@giscus/vue';
+import { useHead } from "@unhead/vue";
+import DOMPurify from "dompurify";
+import type { Config as DOMPurifyConfig } from "dompurify";
+import Giscus from "@giscus/vue";
 
+import { useArticleLoader } from "../composables/useArticleLoader";
+import { useArticleTOC } from "../composables/useArticleTOC";
+import { useCopyButtons } from "../composables/useCopyButtons";
+import { useTheme } from "../composables/useTheme";
+import { createMarkdownRenderer } from "../utils/markdownRenderer";
+import { buildArticleSeo } from "../utils/articleSeo";
+
+import ReadingProgressBar from "../components/ReadingProgressBar.vue";
+import FloatingTOC from "../components/FloatingTOC.vue";
 
 const route = useRoute();
 const router = useRouter();
-const { effectiveDark } = useTheme()
+const { effectiveDark } = useTheme();
 
-const article = ref<Article | null>(null);
-const loading = ref(true);
-const error = ref<string | null>(null);
-const allCollections = ref<CollectionWithArticles[]>([]);
-const flatArticles = ref<Article[]>([]);
-const copyToast = ref<{ type: 'success' | 'error' } | null>(null)
-const activeHeadingId = ref('')
-const articleId = computed(() => article.value?.id ?? null)
+const md = createMarkdownRenderer();
 
-let abortController: AbortController | null = null;
-let copyToastTimer: ReturnType<typeof setTimeout> | null = null
+const purifyConfig: DOMPurifyConfig = {
+  USE_PROFILES: { html: true, svg: true },
+  FORBID_TAGS: ["style", "form", "input", "button", "textarea", "select"],
+  FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover"],
+  ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling"],
+};
 
-useArticleXp(articleId)
+const {
+  article,
+  loading,
+  error,
+  prevArticle,
+  nextArticle,
+  loadArticle,
+} = useArticleLoader();
 
-const tocItems = computed((): TOCItem[] => {
-  if (!article.value?.content) return []
-  return extractHeadings(article.value.content)
-})
+const articleContent = computed(() => article.value?.content);
+const { tocItems } = useArticleTOC(articleContent);
 
-const giscusTheme = computed(() => {
-  return effectiveDark.value ? 'dark' : 'light'
-})
+const { copyToast, injectCopyButtons } = useCopyButtons();
+
+const activeHeadingId = ref("");
+
+const giscusTheme = computed(() => (effectiveDark.value ? "dark" : "light"));
+
+const renderMarkdown = (content: string): string =>
+  (DOMPurify.sanitize(md.render(content), purifyConfig) as unknown) as string;
+
+useHead(() => buildArticleSeo(article.value));
 
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString("ru-RU", {
@@ -51,376 +59,20 @@ const formatDate = (dateString: string) => {
     day: "numeric",
   });
 };
-const slugify = (text: string) => {
-  return text
-    .toLowerCase()
-    .replace(/[^\wа-яё\s-]/gi, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
-}
-
-const extractHeadings = (markdown: string): TOCItem[] => {
-  const headings: TOCItem[] = []
-  const lines = markdown.split('\n')
-  let inCodeBlock = false
-
-  for (const line of lines) {
-    const trimmed = line.trim()
-    if (trimmed.startsWith('```')) {
-      inCodeBlock = !inCodeBlock
-      continue
-    }
-    if (inCodeBlock) continue
-
-    const match = trimmed.match(/^(#{2,3})\s+(.+)$/)
-    if (match) {
-      headings.push({
-        id: slugify(match[2].trim()),
-        text: match[2].trim(),
-        level: match[1].length,
-      })
-    }
-  }
-
-  return headings
-}
-
-const flattenArticles = (articles: Article[]): Article[] => {
-  const result: Article[] = [];
-  for (const a of articles) {
-    result.push(a);
-    if (a.children && a.children.length > 0) {
-      result.push(...flattenArticles(a.children));
-    }
-  }
-  return result;
-};
-const currentCollectionId = computed(() => {
-  const queryCollection = route.query.collection as string | undefined;
-  if (queryCollection) return queryCollection;
-  return article.value?.collectionId;
-});
-const sortedArticles = computed(() => {
-  const collId = currentCollectionId.value;
-  let articles: Article[] = [];
-
-  if (!collId) {
-    for (const coll of allCollections.value) {
-      articles.push(...flattenArticles(coll.articles));
-    }
-  } else {
-    const coll = allCollections.value.find((c) => c.id === collId);
-    if (coll) articles = flattenArticles(coll.articles);
-  }
-
-  return articles.sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
-});
-
-const currentIndex = computed(() => {
-  if (!article.value) return -1;
-  return sortedArticles.value.findIndex((a) => a.id === article.value!.id);
-});
-
-const prevArticle = computed(() => {
-  const idx = currentIndex.value;
-  if (idx <= 0) return null;
-  return sortedArticles.value[idx - 1];
-});
-
-const nextArticle = computed(() => {
-  const idx = currentIndex.value;
-  if (idx === -1 || idx >= sortedArticles.value.length - 1) return null;
-  return sortedArticles.value[idx + 1];
-});
-
-const goToArticle = (id: string) => {
-  router.push(`/articles/${id}`);
-};
-
-const purifyConfig: DOMPurifyConfig = {
-  USE_PROFILES: { html: true, svg: true },
-  FORBID_TAGS: ['style', 'form', 'input', 'button', 'textarea', 'select'],
-  FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur'],
-  ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling'],
-}
-
-const renderMarkdown = (content: string): string => {
-  const raw = md.render(content)
-  return DOMPurify.sanitize(raw, purifyConfig) as unknown as string
-}
-
-const md = new MarkdownIt({
-  html: true,
-  linkify: true,
-  typographer: true,
-  breaks: true,
-  highlight: (str: string, lang: string) => {
-    const language = lang && hljs.getLanguage(lang) ? lang : "plaintext";
-    let highlighted: string;
-
-    try {
-      highlighted = hljs.highlight(str, { language }).value;
-    } catch {
-      highlighted = hljs.highlightAuto(str).value;
-    }
-
-    const safeLang = language.replace(/"/g, "&quot;");
-
-    return (
-      `<div class="code-block-wrapper relative group" data-language="${safeLang}">` +
-      `<div class="code-header justify-between flex items-center gap-3 px-4 py-2 bg-muted/80 border-b border-border rounded-t-lg">` +
-      `<span class="text-xs text-muted font-mono uppercase">${safeLang}</span>` +
-      `</div>` +
-      `<pre class="!mt-0 !mb-0 !rounded-t-none"><code class="hljs language-${safeLang}">${highlighted}</code></pre>` +
-      `</div>`
-    );
-  },
-});
-
-const blockTypes = ["warning", "info", "success", "danger", "tip", "note"];
-const structuralBlocks = ["stats", "timeline", "stack"];
-
-blockTypes.forEach((blockType) => {
-  md.use(markdownItContainer, blockType, {
-    validate: (params: string) => {
-      return params.trim() === blockType;
-    },
-    render: (tokens: any[], idx: number) => {
-      if (tokens[idx].nesting === 1) {
-        const showTitle = !structuralBlocks.includes(blockType);
-        const title = blockType.charAt(0).toUpperCase() + blockType.slice(1);
-        const titleHtml = showTitle ? `<p class="custom-block-title">${title}</p>\n` : '';
-        return `<div class="custom-block ${blockType}">\n${titleHtml}`;
-      } else {
-        return "</div>\n";
-      }
-    },
-  });
-});
-
-const defaultHeadingOpen =
-  md.renderer.rules.heading_open ||
-  ((tokens: any, idx: number, options: any, _env: any, self: any) =>
-    self.renderToken(tokens, idx, options))
-
-md.renderer.rules.heading_open = (tokens: any, idx: number, options: any, env: any, self: any) => {
-  const token = tokens[idx]
-  const nextToken = tokens[idx + 1]
-  if (nextToken && nextToken.type === 'inline') {
-    token.attrSet('id', slugify(nextToken.content))
-  }
-  return defaultHeadingOpen(tokens, idx, options, env, self)
-}
-
-const loadArticle = async (id: string) => {
-  if (abortController) abortController.abort();
-  abortController = new AbortController();
-  const signal = abortController.signal;
-
-  loading.value = true;
-  error.value = null;
-  article.value = null;
-
-  try {
-    const [data, collections] = await Promise.all([
-      getArticle(id, signal),
-      getArticlesStructured(signal),
-    ]);
-
-    if (signal.aborted) return;
-
-    article.value = data;
-    allCollections.value = collections;
-    const collId = (route.query.collection as string | undefined) || data.collectionId;
-    let articles: Article[] = [];
-    if (!collId) {
-      for (const coll of collections) {
-        articles.push(...flattenArticles(coll.articles));
-      }
-    } else {
-      const coll = collections.find((c) => c.id === collId);
-      if (coll) articles = flattenArticles(coll.articles);
-    }
-    flatArticles.value = articles.sort(
-      (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
-    );
-
-    window.scrollTo({ top: 0, behavior: "smooth" });
-
-    nextTick(() => {
-      injectCopyButtons()
-    })
-  } catch (e: any) {
-    if (e.name === "AbortError") return;
-    error.value = e instanceof Error ? e.message : "Failed to load article";
-    console.error("Failed to load article:", e);
-  } finally {
-    if (!signal.aborted) loading.value = false;
-  }
-};
 
 const goBack = () => {
   const returnUrl = sessionStorage.getItem("return_url_articles");
-  if (returnUrl) {
-    router.push(returnUrl);
-  } else {
-    router.push("/articles");
-  }
+  router.push(returnUrl ?? "/articles");
 };
 
-const goToCollection = (collectionId: string) => {
-  router.push({ path: "/articles", query: { collection: collectionId } });
-};
+const goToCollection = (id: string) =>
+  router.push({ path: "/articles", query: { collection: id } });
 
-const siteName = 'Nikita Redko'
-const PLAIN_TEXT_FORBIDDEN_NODES = 'script,style,noscript,template,iframe,object,embed,svg,math'
-const toPlainText = (input: string): string => {
-  const doc = new DOMParser().parseFromString(input, 'text/html')
-  doc.querySelectorAll(PLAIN_TEXT_FORBIDDEN_NODES).forEach((el) => el.remove())
-  return (doc.body?.textContent ?? '').split(/\s+/).join(' ').trim()
-}
-const seoData = computed<ReactiveHead>(() => {
-  const currentUrl = typeof window !== 'undefined' ? window.location.href : ''
-  const origin = typeof window !== 'undefined' ? window.location.origin : ''
-  const ogImage = `${origin}/api/og/${article.value?.id ?? ''}`
-
-  if (!article.value) {
-    return {
-      title: siteName,
-      script: []
-    }
-  }
-
-const title = `${article.value.title} | ${siteName}`
-const rawDesc = article.value.excerpt || article.value.content || ''
-const description =
-  toPlainText(rawDesc).substring(0, 150).trim() || 'Статья на сайте Никиты Редко'
-
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Article',
-    headline: article.value.title,
-    description: description,
-    datePublished: article.value.publishedAt || article.value.createdAt,
-    dateModified: article.value.createdAt,
-    author: {
-      '@type': 'Person',
-      name: siteName,
-      url: origin
-    },
-    publisher: {
-      '@type': 'Organization',
-      name: siteName,
-      logo: {
-        '@type': 'ImageObject',
-        url: ogImage
-      }
-    },
-    mainEntityOfPage: {
-      '@type': 'WebPage',
-      '@id': currentUrl
-    },
-    image: ogImage,
-    articleSection: article.value.collectionName || '',
-    keywords: article.value.tags?.join(', ') || '',
-    inLanguage: 'ru'
-  }
-
-  return {
-    title,
-    meta: [
-      { name: 'description', content: description },
-      { property: 'og:title', content: title },
-      { property: 'og:description', content: description },
-      { property: 'og:type', content: 'article' },
-      { property: 'og:url', content: currentUrl },
-      { property: 'og:image', content: ogImage },
-      { property: 'og:site_name', content: siteName },
-      { name: 'twitter:card', content: 'summary_large_image' },
-      { name: 'twitter:title', content: title },
-      { name: 'twitter:description', content: description },
-      { name: 'twitter:image', content: ogImage },
-    ],
-    link: [
-      { rel: 'canonical' as const, href: currentUrl }
-    ],
-    script: [
-      {
-        type: 'application/ld+json',
-        innerHTML: JSON.stringify(jsonLd).replace(/</g, '\\u003c')
-      }
-    ]
-  }
-})
-
-useHead(seoData)
-
-watch(
-  () => route.params.id,
-  (newId, oldId) => {
-    if (newId && newId !== oldId) loadArticle(newId as string);
-  }
-);
-
-const showCopyToast = (type: 'success' | 'error') => {
-  copyToast.value = { type }
-  if (copyToastTimer) clearTimeout(copyToastTimer)
-  copyToastTimer = setTimeout(() => {
-    copyToast.value = null
-  }, 2500)
-}
-
-const handleCopyClick = (e: MouseEvent) => {
-  const target = e.target as Element | null
-  if (!target) return
-
-  const button = target.closest('.copy-code-btn') as HTMLButtonElement | null
-  if (!button) return
-
-  const codeBlock = button.closest('.code-block-wrapper')
-  if (!codeBlock) return
-
-  const codeElement = codeBlock.querySelector('code')
-  if (!codeElement) return
-
-  const code = codeElement.textContent || ''
-
-  navigator.clipboard
-    .writeText(code)
-    .then(() => showCopyToast('success'))
-    .catch((err) => {
-      console.error('Failed to copy:', err)
-      showCopyToast('error')
-    })
-}
-
-const COPY_BTN_ICON = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>`
-
-const injectCopyButtons = () => {
-  document.querySelectorAll('.code-header').forEach((header) => {
-    if (header.querySelector('.copy-code-btn')) return
-    const btn = document.createElement('button')
-    btn.type = 'button'
-    btn.title = 'Копировать код'
-    btn.className =
-      'copy-code-btn text-xs px-3 py-1 rounded-md text-muted hover:text-foreground transition-all flex items-center gap-1'
-    btn.innerHTML = `${COPY_BTN_ICON}<span>Копировать</span>`
-    header.appendChild(btn)
-  })
-}
+const goToArticle = (id: string) => router.push(`/articles/${id}`);
 
 onMounted(async () => {
   await loadArticle(route.params.id as string);
-  document.addEventListener('click', handleCopyClick)
-});
-
-onUnmounted(() => {
-  if (abortController) abortController.abort()
-  if (copyToastTimer) clearTimeout(copyToastTimer)
-  document.removeEventListener('click', handleCopyClick)
+  nextTick(() => injectCopyButtons());
 });
 </script>
 
