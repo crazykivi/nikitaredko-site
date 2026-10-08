@@ -6,6 +6,9 @@
 ![License](https://img.shields.io/badge/License-Apache%202.0-blue?style=flat-square)
 ![PWA](https://img.shields.io/badge/PWA-Ready-5A0FC8?style=flat-square&logo=pwa)
 ![Android](https://img.shields.io/badge/Android-Capacitor-3DDC84?style=flat-square&logo=android)
+[![codecov](https://codecov.io/gh/crazykivi/nikitaredko-site/branch/main/graph/badge.svg)](https://codecov.io/gh/crazykivi/nikitaredko-site)
+[![CodeQL](https://github.com/crazykivi/nikitaredko-site/actions/workflows/codeql.yml/badge.svg)](https://github.com/crazykivi/nikitaredko-site/actions/workflows/codeql.yml)
+[![Secret Scanning](https://img.shields.io/badge/secrets-gitleaks-brightgreen?style=flat-square)](https://github.com/gitleaks/gitleaks)
 
 Персональный сайт, портфолио и технический блог. Проект демонстрирует подход к разработке современного веб-приложения с использованием **Vue 3** на фронтенде и **Go** на бэкенде. Реализована поддержка PWA, нативная сборка под Android через Capacitor, автоматизированный CI/CD и полная типизация кода.
 
