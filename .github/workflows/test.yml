@@ -12,5 +12,6 @@ jobs:
   run-tests:
     name: Run Tests
     uses: ./.github/workflows/_reusable-tests.yml
+    secrets: inherit 
     permissions:
       contents: read
