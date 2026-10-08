@@ -68,6 +68,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '21'
+          cache: 'gradle'
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
@@ -225,7 +226,7 @@ jobs:
 
             echo ">>> Test deployment completed"
 
-      - name: Wait and Health Check Test Environment
+      - name: Wait and Smoke Test Test Environment
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -234,27 +235,53 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             set -eu
+            BASE="http://127.0.0.1:8082"
+            MAX_RETRIES=10
+            RETRY_COUNT=0
 
             echo ">>> Waiting for test environment to start..."
             sleep 10
 
-            echo ">>> Running health check on test environment..."
-            MAX_RETRIES=10
-            RETRY_COUNT=0
-
+            echo ">>> Running health check..."
             while [ "$RETRY_COUNT" -lt "$MAX_RETRIES" ]; do
-              if curl -f -s http://127.0.0.1:8082/api/cache/health > /dev/null 2>&1; then
+              if curl -f -s "$BASE/api/cache/health" > /dev/null 2>&1; then
                 echo ">>> Health check PASSED"
-                exit 0
+                break
               fi
-
               RETRY_COUNT=$((RETRY_COUNT + 1))
-              echo ">>> Health check attempt $RETRY_COUNT/$MAX_RETRIES failed, retrying in 5 seconds..."
+              echo ">>> Health check attempt $RETRY_COUNT/$MAX_RETRIES failed, retrying in 5s..."
               sleep 5
             done
+            if [ "$RETRY_COUNT" -eq "$MAX_RETRIES" ]; then
+              echo ">>> Health check FAILED after $MAX_RETRIES attempts"
+              exit 1
+            fi
 
-            echo ">>> Health check FAILED after $MAX_RETRIES attempts"
-            exit 1
+            echo ">>> Running smoke tests..."
+            FAIL=0
+
+            check() {
+              local desc="$1"; shift
+              if curl -f -s "$@" > /dev/null 2>&1; then
+                echo "  PASS: $desc"
+              else
+                echo "  FAIL: $desc"
+                FAIL=1
+              fi
+            }
+
+            check "/ returns 200"                "$BASE/"
+            check "/api/collections returns 200" "$BASE/api/collections"
+            check "/api/articles/feed"           "$BASE/api/articles/feed?page=1&limit=5"
+            check "/api/cache/health"            "$BASE/api/cache/health"
+            check "/sitemap.xml"                 "$BASE/sitemap.xml"
+            check "/api/rss.xml"                 "$BASE/api/rss.xml"
+
+            if [ "$FAIL" -ne 0 ]; then
+              echo ">>> Smoke tests FAILED"
+              exit 1
+            fi
+            echo ">>> All smoke tests PASSED"
 
       - name: Cleanup Test Environment
         if: always()
