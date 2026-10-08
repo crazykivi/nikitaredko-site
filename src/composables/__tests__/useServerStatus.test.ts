@@ -95,4 +95,19 @@ describe('useServerStatus', () => {
         await vi.advanceTimersByTimeAsync(60_000)
         expect(mockFetch.mock.calls.length).toBe(callCount)
     })
+
+
+    it('does not re-notify when fetch fails while already unreachable', async () => {
+        mockFetch.mockRejectedValueOnce(new Error('down'))
+        const { status, wrapper } = await mountHelper()
+        await vi.advanceTimersByTimeAsync(0)
+        expect(status.isServerReachable.value).toBe(false)
+
+        mockFetch.mockRejectedValueOnce(new Error('still down'))
+        await status.recheck()
+        await vi.advanceTimersByTimeAsync(0)
+
+        expect(status.isServerReachable.value).toBe(false)
+        wrapper.unmount()
+    })
 })
