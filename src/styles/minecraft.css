@@ -784,11 +784,6 @@
     max-width: 100%;
 }
 
-.mc-depth-deepslate {
-    background-color: #383838;
-    background-image: url('/deepslate.svg');
-}
-
 .charcoal footer {
     position: relative;
     background-color: #151515;
