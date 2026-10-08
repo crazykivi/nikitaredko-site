@@ -120,10 +120,11 @@ func main() {
 			r.NoRoute(func(c *gin.Context) {
 				path := c.Request.URL.Path
 				if len(path) > 1 && strings.Contains(path, ".") {
-					filePath := filepath.Join("./dist", filepath.Clean(path))
-					if info, err := os.Stat(filePath); err == nil && !info.IsDir() {
-						c.File(filePath)
-						return
+					if filePath, ok := staticFilePath("./dist", path); ok {
+						if info, err := os.Stat(filePath); err == nil && !info.IsDir() {
+							c.File(filePath)
+							return
+						}
 					}
 				}
 				articleHandler.ServeFrontend(c)
@@ -174,4 +175,23 @@ func loadConfig() {
 	if err := godotenv.Load(); err != nil {
 		log.Println("[Config] .env not found, using system environment variables")
 	}
+}
+
+func staticFilePath(baseDir, urlPath string) (string, bool) {
+	clean := filepath.Clean("/" + urlPath)
+	if strings.Contains(clean, "..") {
+		return "", false
+	}
+	absBase, err := filepath.Abs(baseDir)
+	if err != nil {
+		return "", false
+	}
+	absFull, err := filepath.Abs(filepath.Join(baseDir, clean))
+	if err != nil {
+		return "", false
+	}
+	if absFull != absBase && !strings.HasPrefix(absFull, absBase+string(os.PathSeparator)) {
+		return "", false
+	}
+	return absFull, true
 }
