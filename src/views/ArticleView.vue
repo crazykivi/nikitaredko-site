@@ -276,7 +276,12 @@ const goToCollection = (collectionId: string) => {
 };
 
 const siteName = 'Nikita Redko'
-
+const PLAIN_TEXT_FORBIDDEN_NODES = 'script,style,noscript,template,iframe,object,embed,svg,math'
+const toPlainText = (input: string): string => {
+  const doc = new DOMParser().parseFromString(input, 'text/html')
+  doc.querySelectorAll(PLAIN_TEXT_FORBIDDEN_NODES).forEach((el) => el.remove())
+  return (doc.body?.textContent ?? '').split(/\s+/).join(' ').trim()
+}
 const seoData = computed<ReactiveHead>(() => {
   const currentUrl = typeof window !== 'undefined' ? window.location.href : ''
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
@@ -289,9 +294,10 @@ const seoData = computed<ReactiveHead>(() => {
     }
   }
 
-  const title = `${article.value.title} | ${siteName}`
-  const rawDesc = article.value.excerpt || article.value.content || ''
-  const description = rawDesc.replace(/<[^>]*>?/gm, '').substring(0, 150).trim() || 'Статья на сайте Никиты Редко'
+const title = `${article.value.title} | ${siteName}`
+const rawDesc = article.value.excerpt || article.value.content || ''
+const description =
+  toPlainText(rawDesc).substring(0, 150).trim() || 'Статья на сайте Никиты Редко'
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -344,7 +350,7 @@ const seoData = computed<ReactiveHead>(() => {
     script: [
       {
         type: 'application/ld+json',
-        innerHTML: JSON.stringify(jsonLd)
+        innerHTML: JSON.stringify(jsonLd).replace(/</g, '\\u003c')
       }
     ]
   }
@@ -421,10 +427,17 @@ onUnmounted(() => {
 <template>
   <ReadingProgressBar />
   <div class="flex-1 min-w-0">
-    <button @click="goBack"
-      class="mb-8 text-muted hover:text-foreground transition-colors flex items-center gap-2 back-btn">
+    <button
+      @click="goBack"
+      class="mb-8 text-muted hover:text-foreground transition-colors flex items-center gap-2 back-btn"
+    >
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M10 19l-7-7m0 0l7-7m-7 7h18"
+        />
       </svg>
       Назад к статьям
     </button>
@@ -446,28 +459,53 @@ onUnmounted(() => {
     </div>
 
     <div v-else-if="error" class="text-center py-20">
-      <p class="text-muted mt-2">Не удалось загрузить данные. Попробуйте обновить страницу.</p>
+      <p class="text-muted mt-2">
+        Не удалось загрузить данные. Попробуйте обновить страницу.
+      </p>
     </div>
 
     <article v-else-if="article" class="animate-fade-in max-w-6xl mx-auto">
       <div class="mb-8">
-        <button v-if="article.collectionName && article.collectionId" @click="goToCollection(article.collectionId)"
+        <button
+          v-if="article.collectionName && article.collectionId"
+          @click="goToCollection(article.collectionId)"
           class="inline-flex items-center gap-1.5 mb-4 text-sm font-bold text-foreground hover:opacity-70 transition-opacity group back-btn"
-          :title="`Все статьи из категории «${article.collectionName}»`">
-          <svg class="w-3.5 h-3.5 text-muted group-hover:text-foreground transition-colors" fill="none"
-            stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+          :title="`Все статьи из категории «${article.collectionName}»`"
+        >
+          <svg
+            class="w-3.5 h-3.5 text-muted group-hover:text-foreground transition-colors"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+            />
           </svg>
           {{ article.collectionName }}
-          <svg class="w-3 h-3 text-muted opacity-0 group-hover:opacity-100 transition-opacity" fill="none"
-            stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          <svg
+            class="w-3 h-3 text-muted opacity-0 group-hover:opacity-100 transition-opacity"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 5l7 7-7 7"
+            />
           </svg>
         </button>
         <div class="flex flex-wrap gap-2 mb-4">
-          <span v-for="tag in article.tags" :key="tag"
-            class="text-xs px-2 py-1 rounded-md bg-muted/50 text-muted font-mono break-all">
+          <span
+            v-for="tag in article.tags"
+            :key="tag"
+            class="text-xs px-2 py-1 rounded-md bg-muted/50 text-muted font-mono break-all"
+          >
             {{ tag }}
           </span>
         </div>
@@ -479,37 +517,72 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <div class="prose prose-neutral dark:prose-invert max-w-none break-words article-content">
+      <div
+        class="prose prose-neutral dark:prose-invert max-w-none break-words article-content"
+      >
         <div v-html="renderMarkdown(article.content || '')"></div>
       </div>
 
       <div class="mt-16 pt-8 border-t border-border">
         <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+            />
           </svg>
           Обсуждение
         </h2>
-        <Giscus repo="crazykivi/nikitaredko-site" repo-id="R_kgDOTJQbZA" category="Show and tell"
-          category-id="DIC_kwDOTJQbZM4DCjCb" mapping="specific" :term="article.id" reactions-enabled="1"
-          emit-metadata="0" input-position="top" :theme="giscusTheme" lang="ru" loading="lazy" />
+        <Giscus
+          repo="crazykivi/nikitaredko-site"
+          repo-id="R_kgDOTJQbZA"
+          category="Show and tell"
+          category-id="DIC_kwDOTJQbZM4DCjCb"
+          mapping="specific"
+          :term="article.id"
+          reactions-enabled="1"
+          emit-metadata="0"
+          input-position="top"
+          :theme="giscusTheme"
+          lang="ru"
+          loading="lazy"
+        />
       </div>
 
-      <nav v-if="prevArticle || nextArticle" class="mt-16 pt-8 border-t border-border grid gap-4"
-        :class="{ 'grid-cols-1 md:grid-cols-2': prevArticle && nextArticle }">
-        <button v-if="prevArticle" @click="goToArticle(prevArticle.id)"
-          class="group relative p-5 rounded-xl border border-border hover:border-foreground/30 bg-background hover:bg-muted/5 transition-all text-left flex items-center gap-4">
+      <nav
+        v-if="prevArticle || nextArticle"
+        class="mt-16 pt-8 border-t border-border grid gap-4"
+        :class="{ 'grid-cols-1 md:grid-cols-2': prevArticle && nextArticle }"
+      >
+        <button
+          v-if="prevArticle"
+          @click="goToArticle(prevArticle.id)"
+          class="group relative p-5 rounded-xl border border-border hover:border-foreground/30 bg-background hover:bg-muted/5 transition-all text-left flex items-center gap-4"
+        >
           <div
-            class="shrink-0 w-10 h-10 rounded-full bg-muted/30 group-hover:bg-muted/60 flex items-center justify-center transition-colors">
-            <svg class="w-5 h-5 text-muted group-hover:text-foreground transition-colors" fill="none"
-              stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            class="shrink-0 w-10 h-10 rounded-full bg-muted/30 group-hover:bg-muted/60 flex items-center justify-center transition-colors"
+          >
+            <svg
+              class="w-5 h-5 text-muted group-hover:text-foreground transition-colors"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M15 19l-7-7 7-7"
+              />
             </svg>
           </div>
           <div class="flex-1 min-w-0">
             <div class="text-xs text-muted uppercase tracking-wider mb-1">Предыдущая</div>
-            <div class="font-medium text-foreground truncate group-hover:translate-x-[-2px] transition-transform">
+            <div
+              class="font-medium text-foreground truncate group-hover:translate-x-[-2px] transition-transform"
+            >
               {{ prevArticle.title }}
             </div>
             <div class="text-xs text-muted mt-1">
@@ -519,11 +592,16 @@ onUnmounted(() => {
         </button>
         <div v-else-if="!prevArticle && !nextArticle"></div>
 
-        <button v-if="nextArticle" @click="goToArticle(nextArticle.id)"
-          class="group relative p-5 rounded-xl border border-border hover:border-foreground/30 bg-background hover:bg-muted/5 transition-all text-left flex items-center gap-4 md:justify-end md:text-right">
+        <button
+          v-if="nextArticle"
+          @click="goToArticle(nextArticle.id)"
+          class="group relative p-5 rounded-xl border border-border hover:border-foreground/30 bg-background hover:bg-muted/5 transition-all text-left flex items-center gap-4 md:justify-end md:text-right"
+        >
           <div class="flex-1 min-w-0">
             <div class="text-xs text-muted uppercase tracking-wider mb-1">Следующая</div>
-            <div class="font-medium text-foreground truncate group-hover:translate-x-[2px] transition-transform">
+            <div
+              class="font-medium text-foreground truncate group-hover:translate-x-[2px] transition-transform"
+            >
               {{ nextArticle.title }}
             </div>
             <div class="text-xs text-muted mt-1">
@@ -531,10 +609,20 @@ onUnmounted(() => {
             </div>
           </div>
           <div
-            class="shrink-0 w-10 h-10 rounded-full bg-muted/30 group-hover:bg-muted/60 flex items-center justify-center transition-colors">
-            <svg class="w-5 h-5 text-muted group-hover:text-foreground transition-colors" fill="none"
-              stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            class="shrink-0 w-10 h-10 rounded-full bg-muted/30 group-hover:bg-muted/60 flex items-center justify-center transition-colors"
+          >
+            <svg
+              class="w-5 h-5 text-muted group-hover:text-foreground transition-colors"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 5l7 7-7 7"
+              />
             </svg>
           </div>
         </button>
@@ -546,21 +634,53 @@ onUnmounted(() => {
       <p class="text-muted">Возможно, она была удалена или перемещена</p>
     </div>
   </div>
-  <FloatingTOC v-if="article && tocItems.length > 1" :items="tocItems" :active-id="activeHeadingId" />
+  <FloatingTOC
+    v-if="article && tocItems.length > 1"
+    :items="tocItems"
+    :active-id="activeHeadingId"
+  />
   <Transition name="toast">
-    <div v-if="copyToast" class="fixed top-12 inset-x-0 z-[9999] flex justify-center pointer-events-none" role="status">
+    <div
+      v-if="copyToast"
+      class="fixed top-12 inset-x-0 z-[9999] flex justify-center pointer-events-none"
+      role="status"
+    >
       <div
-        class="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-border bg-background/95 backdrop-blur-sm shadow-2xl text-sm text-foreground">
-        <svg v-if="copyToast.type === 'success'" class="w-4 h-4 text-green-500 shrink-0" fill="none"
-          stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        class="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-border bg-background/95 backdrop-blur-sm shadow-2xl text-sm text-foreground"
+      >
+        <svg
+          v-if="copyToast.type === 'success'"
+          class="w-4 h-4 text-green-500 shrink-0"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
         </svg>
-        <svg v-else class="w-4 h-4 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <svg
+          v-else
+          class="w-4 h-4 text-red-500 shrink-0"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
         </svg>
-        {{ copyToast.type === 'success' ? 'Копирование в буфер обмена прошло успешно!' : 'Не удалось скопировать код' }}
+        {{
+          copyToast.type === "success"
+            ? "Копирование в буфер обмена прошло успешно!"
+            : "Не удалось скопировать код"
+        }}
       </div>
     </div>
   </Transition>
