@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, nextTick, ref, computed } from "vue";
+import { onMounted, onUnmounted, nextTick, ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useHead } from "@unhead/vue";
 import DOMPurify from "dompurify";
@@ -70,9 +70,38 @@ const goToCollection = (id: string) =>
 
 const goToArticle = (id: string) => router.push(`/articles/${id}`);
 
+const updateActiveHeading = () => {
+  if (!tocItems.value.length) return;
+  let currentId = tocItems.value[0].id;
+
+  for (const item of tocItems.value) {
+    const element = document.getElementById(item.id);
+    if (!element) continue;
+
+    if (element.getBoundingClientRect().top <= 140) {
+      currentId = item.id;
+    } else {
+      break;
+    }
+  }
+
+  activeHeadingId.value = currentId;
+};
+
 onMounted(async () => {
   await loadArticle(route.params.id as string);
-  nextTick(() => injectCopyButtons());
+  await nextTick();
+
+  injectCopyButtons();
+  updateActiveHeading();
+
+  window.addEventListener("scroll", updateActiveHeading, {
+    passive: true,
+  });
+});
+
+onUnmounted(() => {
+  window.removeEventListener("scroll", updateActiveHeading);
 });
 </script>
 
