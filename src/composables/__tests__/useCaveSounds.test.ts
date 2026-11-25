@@ -68,6 +68,7 @@ describe('useCaveSounds', () => {
 
     it('schedules next sound after each play', async () => {
         const { playMcSound } = await import('../../utils/mcSounds')
+        vi.spyOn(Math, 'random').mockReturnValue(0.999)
         const { wrapper } = await mountWithMode('charcoal')
 
         await vi.advanceTimersByTimeAsync(31_000)
